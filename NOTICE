@@ -1,0 +1,15 @@
+Viper Invictus
+Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+This software contains code that compiles to JavaScript and runs on the
+V8 JavaScript engine. V8 is a trademark of Google LLC.
+
+Third-party dependencies:
+- React (MIT License) — Meta Platforms, Inc.
+- Monaco Editor (MIT License) — Microsoft Corporation
+- Vite (MIT License) — Yuxi (Evan) You
+- Tailwind CSS (MIT License) — Tailwind Labs, Inc.
+- shadcn/ui (MIT License) — shadcn

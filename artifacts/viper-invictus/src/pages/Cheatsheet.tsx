@@ -1,3 +1,9 @@
+// Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+// Licensed under the Apache License, Version 2.0
+// See LICENSE or NOTICE for full license text
+// Viper Invictus - A fast scripting language with browser IDE
+// All rights reserved.
+
 import { useState } from "react";
 import { Search, Copy, Check, Terminal, Zap, BookOpen, Hash, Braces, Box, Layers, Palette, Clock, Monitor, Globe, Shield } from "lucide-react";
 

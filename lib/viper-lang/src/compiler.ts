@@ -1,3 +1,9 @@
+// Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+// Licensed under the Apache License, Version 2.0
+// See LICENSE or NOTICE for full license text
+// Viper Invictus - A fast scripting language with browser IDE
+// All rights reserved.
+
 // Bytecode compiler and VM for Viper Invictus
 // Compiles AST to bytecode, then executes on a stack-based VM
 

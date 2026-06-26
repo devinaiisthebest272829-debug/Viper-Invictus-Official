@@ -1,3 +1,9 @@
+// Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+// Licensed under the Apache License, Version 2.0
+// See LICENSE or NOTICE for full license text
+// Viper Invictus - A fast scripting language with browser IDE
+// All rights reserved.
+
 // Viper Invictus JIT Optimizer
 // Superscalar execution blocks, constant folding, dead code elimination,
 // instruction fusion, and branch prediction hints.

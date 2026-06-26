@@ -1,3 +1,9 @@
+// Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+// Licensed under the Apache License, Version 2.0
+// See LICENSE or NOTICE for full license text
+// Viper Invictus - A fast scripting language with browser IDE
+// All rights reserved.
+
 import { useState, useRef, useCallback } from "react";
 import { Play, Square, RotateCcw, Copy, Check, Trash2, Sparkles, Zap, Lightbulb, Star, Triangle, Palette, Flame, Dice5 } from "lucide-react";
 import { Interpreter } from "@/lang";

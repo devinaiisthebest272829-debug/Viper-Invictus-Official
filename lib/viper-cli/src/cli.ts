@@ -1,3 +1,9 @@
+// Copyright 2026 mamadwkwk (devinaiisthebest272829@gmail.com)
+// Licensed under the Apache License, Version 2.0
+// See LICENSE or NOTICE for full license text
+// Viper Invictus - A fast scripting language with browser IDE
+// All rights reserved.
+
 #!/usr/bin/env node
 // Viper Invictus CLI v2.0
 // A world-class command-line interface for the Viper programming language
