@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="artifacts/viper-invictus/public/viper-logo.svg" width="120" alt="Viper Invictus Logo"/>
+  <img src="artifacts/viper-invictus/public/viper-logo.png" width="120" alt="Viper Invictus Logo"/>
 </p>
 
 <h1 align="center">Viper Invictus</h1>
