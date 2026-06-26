@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/viper-cli",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "viper": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/viper-lang": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.0"
+  }
+}

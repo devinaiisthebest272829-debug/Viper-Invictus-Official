@@ -1,0 +1,119 @@
+// ================================================================
+//  Ray-Sphere Intersection Benchmark — 1,000,000 rays
+//  The core math behind every raytracer & 3D game engine.
+//
+//  A ray is: P(t) = origin + t * direction
+//  A sphere: |P - center|² = radius²
+//
+//  Substituting and expanding gives a quadratic:
+//    a·t² + 2b·t + c = 0
+//  where:
+//    oc = ray.origin - sphere.center
+//    a  = dot(dir, dir)        ← 1.0 for normalized rays
+//    b  = dot(dir, oc)
+//    c  = dot(oc, oc) - r²
+//    discriminant = b² - a·c
+//    hit if discriminant >= 0
+//    t  = (-b - sqrt(disc)) / a
+// ================================================================
+
+let N = 1000000
+
+// ── Sphere ───────────────────────────────────────────────────────
+let sX = 0.0
+let sY = 0.0
+let sZ = -5.0
+let sR = 1.5
+
+// ── Stats ────────────────────────────────────────────────────────
+let hits   = 0
+let misses = 0
+let sumT   = 0.0   // sum of hit distances (proof V8 didn't skip math)
+let sumDisc = 0.0  // sum of discriminants
+
+// ── Timing ───────────────────────────────────────────────────────
+print("")
+print("╔══════════════════════════════════════════════════════════╗")
+print("║    RAY-SPHERE INTERSECTION  —  1,000,000 rays           ║")
+print("║    Viper Invictus v2.0  ·  JS compiler  ·  V8 JIT      ║")
+print("╚══════════════════════════════════════════════════════════╝")
+print("")
+print("  Sphere  : center=(0, 0, -5)  radius=1.5")
+print("  Camera  : origin=(0, 0, 0)")
+print("  Pattern : ray directions sweep a virtual 1000×1000 screen")
+print("")
+
+let t0 = timer.now()
+
+// ── Main loop: shoot 1M rays from origin across a virtual screen ──
+// i = pixel row (0..999), j = pixel col (0..999)
+// Map to NDC: u ∈ [-1, 1], v ∈ [-1, 1]
+// Ray direction toward z=-1 plane (perspective camera, fov≈90°)
+
+for (let i = 0; i < 1000; i++) {
+  let v = (i / 999.0) * 2.0 - 1.0      // vertical NDC
+
+  for (let j = 0; j < 1000; j++) {
+    let u = (j / 999.0) * 2.0 - 1.0    // horizontal NDC
+
+    // Ray origin at camera (0, 0, 0)
+    // Direction: (u, v, -1) normalized
+    let dLen = math.sqrt(u*u + v*v + 1.0)
+    let dX = u / dLen
+    let dY = v / dLen
+    let dZ = -1.0 / dLen
+
+    // oc = origin - sphere center = (0,0,0) - (0,0,-5)
+    let ocX = 0.0 - sX    // = 0
+    let ocY = 0.0 - sY    // = 0
+    let ocZ = 0.0 - sZ    // = 5
+
+    // Quadratic coefficients
+    let a    = dX*dX + dY*dY + dZ*dZ          // ≈ 1 (normalized)
+    let b    = dX*ocX + dY*ocY + dZ*ocZ       // dot(dir, oc)
+    let c    = ocX*ocX + ocY*ocY + ocZ*ocZ - sR*sR   // dot(oc,oc) - r²
+    let disc = b*b - a*c
+
+    sumDisc += disc
+
+    if (disc >= 0.0) {
+      let sqrtD = math.sqrt(disc)
+      let t1 = (-b - sqrtD) / a
+      let t2 = (-b + sqrtD) / a
+      let tHit = (t1 > 0.0) ? t1 : t2
+      if (tHit > 0.0) {
+        sumT += tHit
+        hits++
+      } else {
+        misses++
+      }
+    } else {
+      misses++
+    }
+  }
+}
+
+let elapsed = timer.now() - t0
+
+// ── Results ──────────────────────────────────────────────────────
+let nsOp   = elapsed * 1000000.0 / N
+let usOp   = elapsed * 1000.0 / N
+let mRays  = N / (elapsed / 1000.0) / 1000000.0
+
+print("  ── Results ────────────────────────────────────────────")
+print("")
+print("  Total rays cast   : " + str(N))
+print("  Sphere hits       : " + str(hits))
+print("  Sphere misses     : " + str(misses))
+print("  Hit rate          : " + str(math.floor(hits * 10000 / N) / 100.0) + "%")
+print("")
+print("  Wall time         : " + str(math.floor(elapsed * 100) / 100.0) + " ms")
+print("  Per-ray           : " + str(math.floor(nsOp * 100) / 100.0) + " ns/op")
+print("  Throughput        : " + str(math.floor(mRays * 100) / 100.0) + " Mrays/s")
+print("")
+print("  Sanity check      : sumT=" + str(math.floor(sumT)) + "  hits+misses=" + str(hits+misses))
+print("")
+print("╔══════════════════════════════════════════════════════════╗")
+print("║  " + str(math.floor(nsOp * 100) / 100.0) + " ns/ray   ·   " + str(math.floor(mRays * 10) / 10.0) + " Mrays/s   ·   " + str(math.floor(elapsed)) + " ms total")
+print("╚══════════════════════════════════════════════════════════╝")
+print("")

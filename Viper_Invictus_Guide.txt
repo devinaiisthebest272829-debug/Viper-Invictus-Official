@@ -1,0 +1,494 @@
+================================================================================
+                           VIPER INVICTUS - COMPLETE GUIDE
+================================================================================
+
+What is Viper Invictus?
+------------------------
+Viper Invictus is a fully-featured, custom-built programming language designed
+for creative coding, game development, interactive art, and algorithmic
+visualization. It runs entirely in the browser with its own lexer, parser, and
+interpreter — no external compilation or server required. It is designed to be
+intuitive yet powerful, with a syntax familiar to anyone who knows JavaScript or
+Python, but with its own unique features and built-in canvas/game engine.
+
+Use Viper Invictus to:
+- Build interactive games (Snake, physics simulations, particle effects)
+- Create generative art and animations
+- Prototype algorithms and data structures
+- Render entire websites purely on canvas
+- Learn programming fundamentals in a sandboxed environment
+
+================================================================================
+1. QUICK START
+================================================================================
+
+The IDE (Integrated Development Environment) has three main areas:
+- LEFT PANEL: Example browser. Click any example to load its code.
+- CENTER PANEL: The code editor. Write your Viper Invictus code here.
+- RIGHT PANEL: Output. Toggle between Console (text output) and Canvas
+  (visual output).
+
+Click "Run" to execute your code. If the code uses canvas drawing, the Canvas
+panel will automatically activate.
+
+================================================================================
+2. LANGUAGE BASICS
+================================================================================
+
+VARIABLES
+---------
+let x = 10        // mutable variable
+var y = 20        // mutable variable (same as let)
+const PI = 3.14   // immutable constant
+
+DATA TYPES
+----------
+number   : 42, 3.14, -7
+string   : "hello", 'world', `template ${x}`
+bool     : true, false
+null     : null
+array    : [1, 2, 3, "mixed"]
+object   : { name: "Ada", age: 36 }
+
+COMMENTS
+--------
+// Single-line comment
+/* Multi-line
+   comment */
+
+PRINTING
+--------
+print("Hello!")           // prints to console
+log("info message")       // same as print
+warn("warning")           // yellow warning
+error("error message")    // red error
+
+================================================================================
+3. OPERATORS
+================================================================================
+
+Arithmetic: +  -  *  /  %  ** (power)
+Comparison: ==  !=  <  >  <=  >=
+Logical:    &&  ||  !
+Assignment: =  +=  -=  *=  /=  %=
+Increment:  ++  -- (prefix and postfix)
+Ternary:    condition ? value_if_true : value_if_false
+
+================================================================================
+4. CONTROL FLOW
+================================================================================
+
+IF / ELSE
+---------
+if (x > 10) {
+  print("Big")
+} else if (x > 5) {
+  print("Medium")
+} else {
+  print("Small")
+}
+
+WHILE LOOP
+----------
+while (x < 100) {
+  x = x + 1
+}
+
+DO-WHILE LOOP
+-------------
+do {
+  print("At least once")
+  x = x + 1
+} while (x < 10)
+
+FOR LOOP
+--------
+for (let i = 0; i < 10; i++) {
+  print(i)
+}
+
+FOR-OF LOOP (arrays)
+--------------------
+let colors = ["red", "green", "blue"]
+for (let c of colors) {
+  print(c)
+}
+
+FOR-IN LOOP (objects)
+---------------------
+let person = { name: "Ada", age: 36 }
+for (let key in person) {
+  print(key + " = " + person[key])
+}
+
+SWITCH STATEMENT
+----------------
+let day = 3
+switch (day) {
+  case 1: print("Monday"); break
+  case 2: print("Tuesday"); break
+  case 3: print("Wednesday"); break
+  default: print("Weekend")
+}
+
+TRY / CATCH
+-----------
+try {
+  let result = 10 / 0
+  throw "Something went wrong"
+} catch (err) {
+  print("Error: " + err)
+}
+
+THROW
+-----
+throw "Custom error message"
+
+================================================================================
+5. FUNCTIONS
+================================================================================
+
+// Named function
+fn greet(name) {
+  return "Hello, " + name + "!"
+}
+print(greet("World"))
+
+// Anonymous function
+let double = fn(x) { return x * 2 }
+print(double(5))  // 10
+
+// First-class functions
+fn apply(func, value) {
+  return func(value)
+}
+print(apply(fn(x){ return x * x }, 4))  // 16
+
+// Closures
+fn makeCounter(start) {
+  let count = start
+  return fn() {
+    count = count + 1
+    return count
+  }
+}
+let counter = makeCounter(0)
+print(counter())  // 1
+print(counter())  // 2
+
+// Recursion
+fn factorial(n) {
+  if (n <= 1) { return 1 }
+  return n * factorial(n - 1)
+}
+print(factorial(5))  // 120
+
+================================================================================
+6. ARRAYS & BUILT-IN METHODS
+================================================================================
+
+let arr = ["a", "b", "c"]
+
+arr.push("d")           // add to end
+arr.pop()               // remove from end
+arr.shift()             // remove from start
+arr.unshift("z")        // add to start
+arr.reverse()           // reverse in place
+arr.sort()              // sort alphabetically
+arr.join(", ")           // join into string
+arr.indexOf("b")        // find index
+arr.includes("b")       // check existence
+arr.slice(0, 2)         // sub-array
+arr.splice(1, 1, "x")   // remove/insert
+arr.concat(["d", "e"])  // combine arrays
+
+// Higher-order methods
+let nums = [1, 2, 3, 4, 5]
+let evens = nums.filter(fn(n) { return n % 2 == 0 })
+let doubled = nums.map(fn(n) { return n * 2 })
+let sum = nums.reduce(fn(acc, n) { return acc + n }, 0)
+nums.forEach(fn(n) { print(n) })
+let found = nums.find(fn(n) { return n > 3 })
+
+// Array length
+print(arr.length)
+
+================================================================================
+7. OBJECTS
+================================================================================
+
+let person = {
+  name: "Ada",
+  age: 36,
+  greet: fn() { return "Hi, I'm " + self.name }
+}
+
+print(person.name)
+print(person.greet())
+
+// Dynamic property access
+let key = "name"
+print(person[key])
+
+// Object utility functions
+print(keys(person))    // ["name", "age", "greet"]
+print(values(person))  // ["Ada", 36, <fn greet>]
+print(len(person))     // 3
+
+================================================================================
+8. CLASSES
+================================================================================
+
+class Animal {
+  init(name, sound) {
+    self.name = name
+    self.sound = sound
+    self.energy = 100
+  }
+
+  speak() {
+    print(self.name + " says: " + self.sound + "!")
+  }
+
+  status() {
+    return self.name + " (energy: " + self.energy + ")"
+  }
+}
+
+// Inheritance
+class Dog < Animal {
+  init(name) {
+    self.name = name
+    self.sound = "Woof"
+    self.energy = 100
+    self.tricks = []
+  }
+
+  learnTrick(trick) {
+    self.tricks.push(trick)
+  }
+}
+
+let rex = new Dog("Rex")
+rex.speak()
+rex.learnTrick("sit")
+print(rex.status())
+
+================================================================================
+9. BUILT-IN FUNCTIONS
+================================================================================
+
+Type Conversion
+---------------
+str(value)    // convert to string
+num(value)    // convert to number
+bool(value)   // convert to boolean
+type(value)   // get type name
+
+Utility
+-------
+len(value)         // length of array/string/object
+keys(obj)          // get object keys
+values(obj)        // get object values
+range(5)           // [0, 1, 2, 3, 4]
+range(1, 5)        // [1, 2, 3, 4]
+range(0, 10, 2)    // [0, 2, 4, 6, 8]
+
+JSON
+----
+JSON.stringify(obj)       // object to JSON string
+JSON.parse(string)          // JSON string to object
+
+Input
+-----
+getInput("Enter your name: ")  // browser prompt
+
+================================================================================
+10. MATH LIBRARY
+================================================================================
+
+Constants
+---------
+math.PI   // 3.14159...
+math.E    // 2.71828...
+
+Functions
+---------
+math.sqrt(x)      // square root
+math.abs(x)       // absolute value
+math.floor(x)     // round down
+math.ceil(x)      // round up
+math.round(x)     // round to nearest
+math.sin(x)       // sine
+math.cos(x)       // cosine
+math.tan(x)       // tangent
+math.asin(x)      // arcsine
+math.acos(x)      // arccosine
+math.atan(x)      // arctangent
+math.atan2(y, x)  // angle from y/x
+math.pow(x, y)    // x to the power of y
+math.log(x)       // natural log
+math.log2(x)      // log base 2
+math.log10(x)     // log base 10
+math.max(a, b, ...) // maximum
+math.min(a, b, ...) // minimum
+math.hypot(x, y)  // sqrt(x*x + y*y)
+math.sign(x)      // sign of number (-1, 0, 1)
+math.trunc(x)     // remove decimal part
+math.clamp(x, min, max) // clamp between values
+math.lerp(x, y, t) // linear interpolation
+math.random()      // random number 0-1
+math.randInt(1, 6) // random integer inclusive
+
+================================================================================
+11. CANVAS API
+================================================================================
+
+Setup
+-----
+canvas.setSize(500, 400)  // set canvas dimensions
+
+canvas.clear("#0f172a")   // clear with color
+
+Drawing Shapes
+--------------
+canvas.rect(x, y, w, h, color)
+canvas.roundRect(x, y, w, h, radius, color)
+canvas.circle(x, y, radius, color)
+canvas.ellipse(x, y, rx, ry, color)
+canvas.line(x1, y1, x2, y2, width, color)
+canvas.arc(x, y, radius, startAngle, endAngle, color)
+canvas.ringArc(x, y, innerR, outerR, startAngle, endAngle, color)
+canvas.polygon(points, color)
+  // points = [{x: 0, y: 0}, {x: 10, y: 10}, ...]
+
+Text
+----
+canvas.text(x, y, text, size, color)
+canvas.text(x, y, text, size, color, "center")  // align: left|center|right
+
+Images
+------
+canvas.image(src, x, y, w, h)
+
+Transformations
+---------------
+canvas.save()           // save current state
+canvas.restore()        // restore saved state
+canvas.translate(x, y)  // move origin
+canvas.rotate(angle)    // rotate (radians)
+canvas.scale(x, y)      // scale
+
+canvas.alpha(0.5)       // set global alpha (0-1)
+
+Size
+----
+canvas.getWidth()   // returns canvas width
+canvas.getHeight()  // returns canvas height
+
+Input
+-----
+canvas.onKey(fn(key) { ... })     // keyboard handler
+canvas.onClick(fn(x, y) { ... })  // click handler
+
+================================================================================
+12. TIMER & ANIMATION
+================================================================================
+
+// Get current time in milliseconds
+let now = timer.now()
+
+// Get current date
+let d = timer.date()
+print(d.hours)     // 0-23
+print(d.minutes)   // 0-59
+print(d.seconds)   // 0-59
+print(d.day)       // 1-31
+print(d.month)     // 1-12
+print(d.year)      // 2026
+print(d.weekday)   // 0-6 (Sunday=0)
+
+// Animation loop
+fn draw() {
+  canvas.clear("#000")
+  canvas.circle(200, 200, 50, "#fff")
+}
+timer.loop(draw)
+
+// The loop function runs every animation frame (60fps)
+// Use timer.now() to control timing
+
+================================================================================
+13. INFINITE LOOP PROTECTION
+================================================================================
+
+Viper Invictus has a safety feature to prevent infinite loops from crashing
+your browser. If you write code with an infinite loop (like `while(true) {}`),
+the interpreter will automatically stop after 50,000 execution steps.
+
+However, built-in examples and snippets are TRUSTED — they can run loops that
+exceed this limit because they are known-good code. When you write your own
+code, the limit is enforced. This prevents accidental crashes while still
+allowing powerful examples to run freely.
+
+You CANNOT bypass this limit by modifying the code. The only way to increase the
+limit is to change the interpreter source code directly. This is intentional for
+safety.
+
+To avoid infinite loops:
+- Make sure your loop condition eventually becomes false
+- Use `break` to exit loops when needed
+- Test with small numbers first
+
+================================================================================
+14. TIPS & TRICKS
+================================================================================
+
+- Use template strings for easy interpolation: `Value: ${x}`
+- Strings have built-in methods: .upper(), .lower(), .trim(), .split(), .replace()
+- You can return objects from functions to create complex data structures
+- Use closures to create private state
+- Combine canvas transforms for cool effects
+- Use math.random() for generative art
+- The canvas alpha function is great for trails and fade effects
+- Use `break` and `continue` in loops for fine control
+
+================================================================================
+15. EXAMPLE: COMPLETE PROGRAM
+================================================================================
+
+// A complete bouncing ball animation
+
+let W = 400
+let H = 300
+let x = 50
+let y = 50
+let dx = 3
+let dy = 2
+let radius = 15
+
+fn draw() {
+  canvas.clear("#0f172a")
+
+  // Draw ball
+  canvas.circle(x, y, radius, "#7c6af7")
+  canvas.circle(x - 5, y - 5, 4, "rgba(255,255,255,0.3)")
+
+  // Bounce
+  x = x + dx
+  y = y + dy
+
+  if (x + radius > W || x - radius < 0) { dx = -dx }
+  if (y + radius > H || y - radius < 0) { dy = -dy }
+
+  // Info
+  canvas.text(10, 20, "Bouncing Ball Demo", 14, "#fff")
+  canvas.text(10, 40, "x=" + x + " y=" + y, 11, "#64748b")
+}
+
+canvas.setSize(W, H)
+timer.loop(draw)
+
+================================================================================
+                           HAPPY CODING WITH VIPER INVICTUS!
+================================================================================

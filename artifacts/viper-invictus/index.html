@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Viper Invictus IDE</title>
+    <meta name="description" content="Viper Invictus — a programming language for games, art, and apps." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Viper Invictus IDE" />
+    <meta property="og:description" content="Viper Invictus — a programming language for games, art, and apps." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Viper Invictus IDE" />
+    <meta name="twitter:description" content="Viper Invictus — a programming language for games, art, and apps." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Hide Replit badge */
+      .replit-badge, .repl-badge, [class*="replit"], [class*="repl-badge"],
+      div[style*="position: fixed"][style*="bottom"], div[style*="position:fixed"][style*="bottom"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove Replit badge if injected
+      function removeReplitBadge() {
+        const selectors = [
+          '.replit-badge',
+          '.repl-badge',
+          '[class*="replit"]',
+          'div[style*="position: fixed"]',
+          'div[style*="position:fixed"]',
+          'iframe[src*="replit"]'
+        ];
+        selectors.forEach(sel => {
+          document.querySelectorAll(sel).forEach(el => {
+            if (el.textContent?.toLowerCase().includes('replit') || el.innerHTML?.toLowerCase().includes('replit')) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+              el.style.opacity = '0';
+              el.style.pointerEvents = 'none';
+            }
+          });
+        });
+      }
+      setInterval(removeReplitBadge, 500);
+      removeReplitBadge();
+    </script>
+  </body>
+</html>

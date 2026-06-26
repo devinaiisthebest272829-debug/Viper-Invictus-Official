@@ -1,0 +1,171 @@
+// ================================================================
+//  Viper Invictus v2.0 — Precision Benchmark Suite
+//  Engine: JS compiler → native V8 (sub-50 ns/op target)
+// ================================================================
+
+fn row(label, iters, ms) {
+  let ns    = ms * 1000000
+  let us    = ms * 1000
+  let nsOp  = ns / iters
+  let mOps  = iters / (ms / 1000) / 1000000
+  print("  " + label + "  →  " + str(math.floor(nsOp * 10) / 10) + " ns/op   " + str(math.floor(mOps * 10) / 10) + " Mop/s   total " + str(math.floor(us)) + " µs")
+}
+
+print("")
+print("╔═══════════════════════════════════════════════════════════╗")
+print("║      VIPER INVICTUS v2.0 — PERFORMANCE BENCHMARK         ║")
+print("║      Engine: JS compiler + V8 JIT                        ║")
+print("╚═══════════════════════════════════════════════════════════╝")
+print("  Platform : " + process.platform + " / " + os.arch + " / " + str(os.cpus) + " CPUs")
+print("  Node     : " + process.version)
+print("  Date     : " + timer.date())
+print("")
+print("  label                          ns/op    Mop/s    total")
+print("  ─────────────────────────────────────────────────────────")
+
+// ── 1. Integer Counter Loop ──────────────────────────────────────
+let N1 = 10000000
+let t1 = timer.now()
+let s1 = 0
+for (let i = 0; i < N1; i++) { s1 += i }
+let e1 = timer.now() - t1
+row("1. int counter loop       10M", N1, e1)
+
+// ── 2. Float Multiply/Add ────────────────────────────────────────
+let N2 = 5000000
+let t2 = timer.now()
+let s2 = 1.0
+for (let i = 1; i < N2; i++) { s2 = s2 * 1.0000001 + 0.0000001 }
+let e2 = timer.now() - t2
+row("2. float mul/add           5M", N2, e2)
+
+// ── 3. math.sqrt (→ Math.sqrt, native) ──────────────────────────
+let N3 = 2000000
+let t3 = timer.now()
+let s3 = 0.0
+for (let i = 1; i < N3; i++) { s3 += math.sqrt(i) }
+let e3 = timer.now() - t3
+row("3. math.sqrt               2M", N3, e3)
+
+// ── 4. sin + cos (→ Math.sin/cos, native) ────────────────────────
+let N4 = 1000000
+let t4 = timer.now()
+let s4 = 0.0
+for (let i = 0; i < N4; i++) { s4 += math.sin(i) + math.cos(i) }
+let e4 = timer.now() - t4
+row("4. sin + cos               1M", N4, e4)
+
+// ── 5. Memoized Fibonacci (closure cache) ────────────────────────
+fn makeFibMemo() {
+  let cache = {}
+  fn fib(n) {
+    if (n <= 1) { return n }
+    if (cache[n] != null) { return cache[n] }
+    let r = fib(n - 1) + fib(n - 2)
+    cache[n] = r
+    return r
+  }
+  return fib
+}
+let fibMemo = makeFibMemo()
+
+let t5 = timer.now()
+let s5 = 0
+for (let i = 0; i < 1000; i++) { s5 = fibMemo(40) }
+let e5 = timer.now() - t5
+row("5. memoized fib(40)×1000 ", 1000, e5)
+
+// ── 6. Naive fib(32) — exponential but compiled ──────────────────
+fn fib(n) {
+  if (n <= 1) { return n }
+  return fib(n - 1) + fib(n - 2)
+}
+let t6 = timer.now()
+let s6 = fib(32)
+let e6 = timer.now() - t6
+row("6. naive fib(32)           1 ", 1, e6)
+
+// ── 7. Prime Sieve to 100 000 ────────────────────────────────────
+fn sieve(n) {
+  let arr = []
+  for (let i = 0; i <= n; i++) { arr.push(true) }
+  arr[0] = false ; arr[1] = false
+  let i = 2
+  while (i * i <= n) {
+    if (arr[i] == true) {
+      let j = i * i
+      while (j <= n) { arr[j] = false ; j += i }
+    }
+    i++
+  }
+  let cnt = 0
+  for (let k = 0; k < n; k++) { if (arr[k] == true) { cnt++ } }
+  return cnt
+}
+let t7 = timer.now()
+let s7 = sieve(100000)
+let e7 = timer.now() - t7
+row("7. prime sieve 100K      100K", 100000, e7)
+
+// ── 8. Array push + sum ──────────────────────────────────────────
+let N8 = 100000
+let t8 = timer.now()
+let arr8 = []
+for (let i = 0; i < N8; i++) { arr8.push(i * i) }
+let s8 = 0
+for (let j = 0; j < N8; j++) { s8 += arr8[j] }
+let e8 = timer.now() - t8
+row("8. array push+sum        100K", N8, e8)
+
+// ── 9. Function call overhead ────────────────────────────────────
+fn add2(a, b) { return a + b }
+let N9 = 500000
+let t9 = timer.now()
+let s9 = 0
+for (let i = 0; i < N9; i++) { s9 = add2(s9, i) }
+let e9 = timer.now() - t9
+row("9. fn call overhead      500K", N9, e9)
+
+// ── 10. Nested loops ─────────────────────────────────────────────
+let N10 = 1000
+let t10 = timer.now()
+let s10 = 0
+for (let i = 0; i < N10; i++) {
+  for (let j = 0; j < N10; j++) { s10 += i * j }
+}
+let e10 = timer.now() - t10
+row("10. nested loops       1M ops", N10 * N10, e10)
+
+// ── 11. Power + fma chain ────────────────────────────────────────
+let N11 = 2000000
+let t11 = timer.now()
+let s11 = 0.0
+for (let i = 0; i < N11; i++) {
+  s11 = math.sqrt(s11 + 1.0) * 1.001
+}
+let e11 = timer.now() - t11
+row("11. sqrt fma chain        2M", N11, e11)
+
+// ── 12. Ternary / branch intensive ──────────────────────────────
+let N12 = 5000000
+let t12 = timer.now()
+let s12 = 0
+for (let i = 0; i < N12; i++) {
+  s12 += (i % 2 == 0) ? i : -i
+}
+let e12 = timer.now() - t12
+row("12. branch ternary         5M", N12, e12)
+
+// ── TOTALS ───────────────────────────────────────────────────────
+let total = e1+e2+e3+e4+e5+e6+e7+e8+e9+e10+e11+e12
+print("  ─────────────────────────────────────────────────────────")
+print("")
+print("  SANITY CHECK  s1=" + str(s1) + "  s3≈" + str(math.floor(s3)) + "  s7=" + str(s7) + "  s6=" + str(s6))
+print("")
+print("╔═══════════════════════════════════════════════════════════╗")
+print("║  TOTAL WALL TIME: " + str(math.floor(total)) + " ms  |  " + str(math.floor(total * 1000)) + " µs  |  " + str(math.floor(total * 1000000)) + " ns")
+print("╚═══════════════════════════════════════════════════════════╝")
+print("")
+print("  Target: < 50 ns/op on pure integer/float loops")
+print("  Engine: Viper Invictus v2.0 compiled → V8 native JIT")
+print("")
