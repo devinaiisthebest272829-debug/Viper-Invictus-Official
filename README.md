@@ -5,12 +5,11 @@
 <h1 align="center">Viper Invictus</h1>
 <p align="center">
   <strong>A fast, expressive scripting language with a browser-based IDE</strong><br/>
-  JS→V8 compiler · Canvas rendering · 1 ns/ray ray-sphere intersection
+  JS compiler · Canvas rendering · REPL · Package manager
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.0-7c6af7?style=flat-square"/>
-  <img src="https://img.shields.io/badge/engine-V8%20TurboFan-FF3C00?style=flat-square"/>
   <img src="https://img.shields.io/badge/license-Apache%202.0-22c55e?style=flat-square"/>
 </p>
 
@@ -18,7 +17,9 @@
 
 ## What is Viper Invictus?
 
-Viper Invictus is a dynamically-typed scripting language that compiles to JavaScript and runs on V8's TurboFan JIT. It features a full browser IDE with Monaco editor, canvas rendering, and a package manager (VPM). The syntax is clean and expressive — a blend of Python's readability and JavaScript's power.
+Viper Invictus is a dynamically-typed scripting language that compiles to JavaScript and runs in the browser. It has a full IDE with Monaco editor, canvas rendering, and a CLI with REPL, package manager, and build tooling.
+
+The syntax sits between Python's readability and JavaScript's expressiveness. No install required — open the IDE and write code.
 
 ```viper
 fn fib(n) {
@@ -31,29 +32,16 @@ print("fib(35) = " + str(fib(35)))
 
 ---
 
-## Performance
-
-Viper compiles to native JS and executes via V8 TurboFan. After JIT warmup:
-
-| Benchmark | Viper | Python | C++ naive |
-|---|---|---|---|
-| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op | ~0.3 ns/op |
-| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op | ~4 ns/op |
-| Ray-sphere (1M rays) | **1.06 ns/ray** | ~120 ns/ray | ~4.5 ns/ray |
-| Function calls (500K) | **16.7 ns/op** | ~200 ns/op | ~1 ns/op |
-
-> Ray-sphere intersection benchmark: **941 Mrays/s** — 112× faster than Python, 4× faster than naive C++.
-
----
-
 ## Features
 
-- **JS Compiler** — Viper source → native JS → V8 TurboFan. Pure integer loops run at 1.2 ns/op.
-- **Browser IDE** — Monaco editor, live canvas, console output, file tabs
-- **Canvas API** — `canvas.rect()`, `canvas.circle()`, `canvas.text()`, game loops, keyboard/mouse events
-- **Package Manager** — VPM: install community packages from the registry
-- **CLI** — Run `.vi` scripts from the terminal via `viper-cli`
-- **Standard Library** — `math`, `timer`, `os`, `fs`, `env`, `http`, `storage`
+- **JS Compiler** — Viper source → AST → JavaScript, executed by the browser's V8 engine. Includes a tree-walker interpreter fallback for edge cases.
+- **Browser IDE** — Monaco editor, live canvas output, console, error highlighting, 20+ built-in examples
+- **Canvas API** — `canvas.rect()`, `canvas.circle()`, `canvas.text()`, keyboard/mouse events, game loops
+- **Package Manager** — VPM installs packages from GitHub URLs, manages lockfiles and manifests (`viper.json`)
+- **CLI** — `viper run`, `viper repl`, `viper build`, `viper check`, `viper fmt`, `viper test`, `viper vpm`
+- **HDL compilation** — `viper build --target verilog` generates Verilog/VHDL from Viper source (experimental)
+- **Backend execution** — IDE can send code to the Express API server for server-side runs with `fs`, `env`, `http`
+- **Standard library** — `math`, `timer`, `os`, `fs`, `env`, `http`, `storage`
 
 ---
 
@@ -81,7 +69,7 @@ canvas.clear("#111")
 canvas.circle(100, 100, 40, "#7c6af7")
 canvas.text(100, 200, "Hello!", 20, "#fff")
 
-// Math (compiles to Math.* — no overhead)
+// Math (compiles to Math.*)
 let r = math.sqrt(2.0)
 let s = math.sin(math.PI / 4)
 ```
@@ -91,7 +79,7 @@ let s = math.sin(math.PI / 4)
 ## Getting Started
 
 ### Browser IDE
-Visit the [live IDE](https://viper-invictus.replit.app) to start coding immediately — no install required.
+Visit the [live IDE](https://viper-invictus.replit.app) to start coding immediately.
 
 ### CLI
 ```bash
@@ -101,7 +89,7 @@ cd Viper-Invictus-Official
 pnpm install
 
 # Run a Viper script
-pnpm --filter @workspace/viper-cli exec tsx src/cli.ts run my_script.vi --trusted
+pnpm --filter @workspace/viper-cli exec tsx src/cli.ts run hello.vi --trusted
 
 # Start the IDE dev server
 pnpm --filter @workspace/viper-invictus run dev
@@ -115,26 +103,12 @@ pnpm --filter @workspace/viper-invictus run dev
 Viper-Invictus-Official/
 ├── artifacts/
 │   ├── viper-invictus/    # Browser IDE (React + Vite)
-│   └── api-server/        # Optional backend API
+│   └── api-server/        # Optional backend API (Express)
 ├── lib/
-│   ├── viper-lang/        # Lexer, parser, compiler, interpreter
-│   └── viper-cli/         # CLI runner (viper-cli)
-├── benchmark.vi           # Performance benchmarks
-└── ray_sphere_fast.vi     # Ray-sphere intersection demo
-```
-
----
-
-## Benchmarks
-
-Run the benchmark suite:
-```bash
-pnpm --filter @workspace/viper-cli exec tsx src/cli.ts run benchmark.vi --trusted
-```
-
-Run the ray-sphere intersection benchmark (1M rays, < 2 ns/ray):
-```bash
-pnpm --filter @workspace/viper-cli exec tsx src/cli.ts run ray_sphere_fast.vi --trusted
+│   ├── viper-lang/        # Lexer, parser, compiler, interpreter, VM
+│   └── viper-cli/         # CLI runner, REPL, VPM, build
+├── benchmark.vi             # Performance benchmark suite
+└── ray_sphere_fast.vi       # Ray-sphere intersection demo
 ```
 
 ---
