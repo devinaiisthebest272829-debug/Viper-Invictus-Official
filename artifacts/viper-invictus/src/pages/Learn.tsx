@@ -369,14 +369,14 @@ export default function Learn() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <img src="/viper-logo.png" alt="Viper Invictus" className="w-7 h-7 rounded-lg" />
+            <img src="viper-logo.png" alt="Viper Invictus" className="w-7 h-7 rounded-lg" />
             Learn Viper Invictus
           </h1>
           <span className="text-sm text-white/40">{completed.size} / {LESSONS.length} lessons completed</span>
         </div>
         <div className="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[#7c6af7] to-[#e94560] transition-all duration-500"
+            className="h-full bg-[#7c6af7] transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -486,7 +486,7 @@ export default function Learn() {
               </div>
 
               {/* Tips */}
-              <div className="bg-gradient-to-br from-[#7c6af7]/10 to-[#e94560]/10 border border-white/10 rounded-xl p-5">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Lightbulb className="w-4 h-4 text-yellow-400" />
                   <span className="text-sm font-medium text-white/80">Pro Tips</span>
@@ -506,7 +506,7 @@ export default function Learn() {
                 {!completed.has(lesson.id) ? (
                   <button
                     onClick={markComplete}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#7c6af7] to-[#6b5de4] hover:from-[#8d7ff8] hover:to-[#7c6af7] text-white text-sm font-medium transition-all shadow-lg shadow-[#7c6af7]/20"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#7c6af7] hover:bg-[#8d7ff8] text-white text-sm font-medium transition-colors"
                   >
                     <CheckCircle className="w-4 h-4" /> Mark Complete
                   </button>
