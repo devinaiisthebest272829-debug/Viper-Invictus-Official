@@ -22,9 +22,9 @@ const CHANGELOG: Version[] = [
     version: "2.0",
     date: "June 2026",
     changes: [
-      { type: "feature", text: "Compile cache: source is hashed on every execute() call — if the hash matches the last run, the lex/parse/compile pipeline is skipped entirely for a near-instant repeat run" },
+      { type: "feature", text: "Compile cache: source is hashed on every execute() call; if the hash matches the last run, the lex/parse/compile pipeline is skipped entirely for a near-instant repeat run" },
       { type: "feature", text: "Frame count batching: the interpreter loop overhead check now fires every 512 frames instead of every frame, cutting animation loop overhead by roughly 500×" },
-      { type: "feature", text: "Backend execution mode: send code to the Node.js API server instead of the browser VM — useful for code that uses fs, env, or http" },
+      { type: "feature", text: "Backend execution mode: send code to the Node.js API server instead of the browser VM ;  useful for code that uses fs, env, or http" },
       { type: "feature", text: "CLI download: grab the full Viper CLI package directly from the IDE toolbar" },
       { type: "feature", text: "Mobile layout: responsive sidebar and editor with touch-friendly controls and a full-screen editor on small screens" },
       { type: "improvement", text: "VM function calls now look up compiled bytecode from the program table and push proper call frames, fixing incorrect NULL returns" },
