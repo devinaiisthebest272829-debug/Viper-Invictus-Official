@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink, BookOpen, Code2, Youtube, FileText, MessageCircle, Github, Globe, Star, Sparkles } from "lucide-react";
+import { ExternalLink, BookOpen, Code2, FileText, Github, Star } from "lucide-react";
 
 interface Resource {
   title: string;
@@ -19,7 +19,7 @@ interface Resource {
 const RESOURCES: Resource[] = [
   {
     title: "GitHub Repository",
-    url: "https://github.com/devinaiisthebest272829-debug/viper-invictus",
+    url: "https://github.com/devinaiisthebest272829-debug/Viper-Invictus-Official",
     description: "Source code, issues, and contributions",
     icon: <Github className="w-4 h-4" />,
     type: "Code",
@@ -56,13 +56,13 @@ const RESOURCES: Resource[] = [
     title: "Tutorials",
     url: "/tutorials",
     description: "Step-by-step projects you can build",
-    icon: <Sparkles className="w-4 h-4" />,
+    icon: <FileText className="w-4 h-4" />,
     type: "Learning",
   },
   {
     title: "Showcase",
     url: "/showcase",
-    description: "See what others have built",
+    description: "Examples of what you can build",
     icon: <Star className="w-4 h-4" />,
     type: "Inspiration",
   },
@@ -77,28 +77,28 @@ const RESOURCES: Resource[] = [
 
 const TIPS = [
   {
-    title: "Start Small",
-    content: "Begin with a simple print() statement. Then add variables, then functions. Build up gradually.",
+    title: "print() is your debugger",
+    content: "Print intermediate values at each step. It's the fastest way to understand what your code is actually doing.",
   },
   {
-    title: "Use the Console",
-    content: "print() is your best friend for debugging. Output values at each step to see what's happening.",
+    title: "Read the full error list",
+    content: "Viper shows all parse errors at once. Fix them top to bottom — earlier errors often cause the ones below them.",
   },
   {
-    title: "Read Error Messages",
-    content: "Viper Invictus shows all errors at once. Don't panic, read them one by one and fix each issue.",
+    title: "Start from an example",
+    content: "Pick the sidebar example closest to what you want, then modify it. It's faster than building from scratch.",
   },
   {
-    title: "Experiment",
-    content: "The IDE is instant. Change a number, run it, see what happens. That's the fastest way to learn.",
+    title: "Use the canvas tab",
+    content: "Any code that calls canvas.setSize() will switch the output panel to Canvas automatically. You don't need to click.",
   },
   {
-    title: "Copy Examples",
-    content: "Start with an example that does something close to what you want. Modify it step by step.",
+    title: "Ctrl+Enter to run",
+    content: "You don't need to reach for the Run button. Ctrl+Enter (or Cmd+Enter on Mac) runs the current code immediately.",
   },
   {
-    title: "Save Your Work",
-    content: "Copy your code into a text file on your computer. The browser won't save it automatically.",
+    title: "Save your code locally",
+    content: "The browser doesn't persist editor content between sessions. Copy your code into a local file when you want to keep it.",
   },
 ];
 
@@ -112,8 +112,8 @@ export default function Resources() {
     <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Resources & Tips</h1>
-        <p className="text-sm text-white/50">Everything you need to learn and build with Viper Invictus</p>
+        <h1 className="text-2xl font-bold mb-2">Resources</h1>
+        <p className="text-sm text-white/50">Links and tips for learning and building with Viper Invictus</p>
       </div>
 
       {/* Type filter */}
@@ -143,7 +143,7 @@ export default function Resources() {
             rel={resource.url.startsWith("http") ? "noopener noreferrer" : undefined}
             className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.07] hover:border-white/15 transition-all group"
           >
-            <div className="w-9 h-9 rounded-lg bg-[#7c6af7]/10 flex items-center justify-center text-[#7c6af7] group-hover:bg-[#7c6af7]/20 transition-all">
+            <div className="w-9 h-9 rounded-lg bg-[#7c6af7]/10 flex items-center justify-center text-[#7c6af7] group-hover:bg-[#7c6af7]/15 transition-all">
               {resource.icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -164,9 +164,9 @@ export default function Resources() {
         ))}
       </div>
 
-      {/* Learning Tips */}
+      {/* Tips */}
       <div className="mb-6">
-        <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">Learning Tips</h2>
+        <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">Tips</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {TIPS.map((tip, i) => (
             <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-xl">
@@ -182,22 +182,22 @@ export default function Resources() {
         </div>
       </div>
 
-      {/* Getting Started CTA */}
-      <div className="bg-gradient-to-r from-[#7c6af7]/10 to-[#e94560]/10 border border-white/10 rounded-xl p-6">
+      {/* CTA */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c6af7] to-[#e94560] flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[#7c6af7]/10 flex items-center justify-center shrink-0">
+            <Code2 className="w-5 h-5 text-[#7c6af7]" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white/90 mb-1">Ready to start coding?</h3>
+            <h3 className="text-sm font-semibold text-white/90 mb-1">Open the IDE</h3>
             <p className="text-xs text-white/50 mb-3 leading-relaxed">
-              The best way to learn is by doing. Open the IDE, pick an example, and start modifying it.
-              Every expert was once a beginner.
+              The best way to learn is by running code and seeing what happens. Pick an example from
+              the sidebar and start changing things.
             </p>
             <div className="flex gap-2">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#7c6af7] to-[#6b5de4] hover:from-[#8d7ff8] hover:to-[#7c6af7] text-white text-xs font-medium transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#7c6af7] hover:bg-[#8d7ff8] text-white text-xs font-medium transition-colors"
               >
                 <Code2 className="w-3.5 h-3.5" /> Open IDE
               </Link>
