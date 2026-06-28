@@ -5,21 +5,21 @@
 // All rights reserved.
 
 import { Link, useLocation } from "wouter";
-import { BookOpen, Code2, Home, Play, Terminal, HelpCircle, Menu, X, ChevronRight, Zap, Sparkles, FileText, Layers, History } from "lucide-react";
+import { Menu, X, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 const NAV = [
-  { path: "/", label: "IDE", icon: Code2 },
-  { path: "/learn", label: "Learn", icon: BookOpen },
-  { path: "/docs", label: "Docs", icon: Terminal },
-  { path: "/examples", label: "Examples", icon: Play },
-  { path: "/cheatsheet", label: "Cheat", icon: FileText },
-  { path: "/tutorials", label: "Tutorials", icon: Zap },
-  { path: "/playground", label: "Play", icon: Sparkles },
-  { path: "/showcase", label: "Showcase", icon: Layers },
-  { path: "/resources", label: "Resources", icon: BookOpen },
-  { path: "/changelog", label: "Changelog", icon: History },
-  { path: "/about", label: "About", icon: HelpCircle },
+  { path: "/", label: "IDE" },
+  { path: "/learn", label: "Learn" },
+  { path: "/docs", label: "Docs" },
+  { path: "/examples", label: "Examples" },
+  { path: "/cheatsheet", label: "Cheatsheet" },
+  { path: "/tutorials", label: "Tutorials" },
+  { path: "/playground", label: "Playground" },
+  { path: "/showcase", label: "Showcase" },
+  { path: "/resources", label: "Resources" },
+  { path: "/changelog", label: "Changelog" },
+  { path: "/about", label: "About" },
 ];
 
 export function Layout({ children, fullWidth = false }: { children: React.ReactNode; fullWidth?: boolean }) {
@@ -29,7 +29,7 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-[#08081a] text-white flex flex-col">
       {/* Top navigation */}
-      <nav className="border-b border-white/10 bg-[#09091a]/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-white/10 bg-[#09091a]/90 backdrop-blur-md sticky top-0 z-50 shadow-[0_1px_12px_rgba(0,0,0,0.4)]">
         <div className="max-w-7xl mx-auto px-4 flex items-center h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1 mr-8 shrink-0">
@@ -51,7 +51,6 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
                       : "text-white/50 hover:text-white/80 hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               );
@@ -85,7 +84,6 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
                       : "text-white/50 hover:text-white/80 hover:bg-white/5"
                   }`}
                 >
-                  <item.icon className="w-4 h-4" />
                   {item.label}
                   {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
                 </Link>
@@ -101,18 +99,48 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-6 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/30">
-          <span>Viper Invictus v2.0 - JIT · FPGA/HDL · Superscalar · VPM</span>
-          <div className="flex items-center gap-4 flex-wrap justify-center">
-            <Link href="/docs" className="hover:text-white/60 transition-colors">Docs</Link>
-            <Link href="/learn" className="hover:text-white/60 transition-colors">Learn</Link>
-            <Link href="/cheatsheet" className="hover:text-white/60 transition-colors">Cheatsheet</Link>
-            <Link href="/tutorials" className="hover:text-white/60 transition-colors">Tutorials</Link>
-            <Link href="/showcase" className="hover:text-white/60 transition-colors">Showcase</Link>
-            <Link href="/resources" className="hover:text-white/60 transition-colors">Resources</Link>
-            <Link href="/changelog" className="hover:text-white/60 transition-colors">Changelog</Link>
-            <a href="https://github.com/devinaiisthebest272829-debug/viper-invictus" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">GitHub</a>
+      <footer className="border-t border-white/10 bg-[#060614] py-8 px-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+          {/* Brand */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <img src="/viper-logo.png" alt="Viper Invictus" className="w-6 h-6 rounded-md" />
+              <span className="font-semibold text-white/70">Viper Invictus 2.0</span>
+            </div>
+            <p className="text-xs text-white/30 leading-relaxed">
+              A scripting language for games, art, and interactive programs. Runs in the browser IDE or via the CLI.
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+            <div>
+              <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Learn</p>
+              <div className="space-y-1">
+                <Link href="/learn" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Learn</Link>
+                <Link href="/docs" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Docs</Link>
+                <Link href="/tutorials" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Tutorials</Link>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Reference</p>
+              <div className="space-y-1">
+                <Link href="/cheatsheet" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Cheatsheet</Link>
+                <Link href="/examples" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Examples</Link>
+                <Link href="/playground" className="block text-xs text-white/30 hover:text-white/60 transition-colors">Playground</Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Credits */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">Community</p>
+            <div className="flex flex-wrap gap-2">
+              <a href="https://github.com/devinaiisthebest272829-debug/Viper-Invictus-Official" target="_blank" rel="noopener noreferrer" className="text-xs text-white/30 hover:text-white/60 transition-colors">GitHub</a>
+              <Link href="/showcase" className="text-xs text-white/30 hover:text-white/60 transition-colors">Showcase</Link>
+              <Link href="/resources" className="text-xs text-white/30 hover:text-white/60 transition-colors">Resources</Link>
+            </div>
+            <a href="https://discord.gg/P4XDWvGgmt" target="_blank" rel="noopener noreferrer" className="text-xs text-white/30 hover:text-white/60 transition-colors pt-2">Discord</a>
           </div>
         </div>
       </footer>
