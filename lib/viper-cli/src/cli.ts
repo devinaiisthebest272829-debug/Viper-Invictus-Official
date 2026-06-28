@@ -100,24 +100,17 @@ function printHelp(topic?: string) {
 
   if (topic === "build") {
     printBanner();
-    console.log(`${bold("viper build")} — Compile Viper to multiple targets\n`);
+    console.log(`${bold("viper build")} — Compile Viper to JavaScript\n`);
     console.log(`${bold("Usage:")} viper build <file.vi> [options]\n`);
     console.log(`${bold("Options:")}`);
-    console.log(`  ${cyan("--target")}  <js|verilog|vhdl|sv>   Output target (default: js)`);
+    console.log(`  ${cyan("--target")}  <js>                    Output target (default: js)`);
     console.log(`  ${cyan("--out")}    <file>                  Output file`);
-    console.log(`  ${cyan("--clock")}  <MHz>                   Target clock for HDL (default: 200)`);
-    console.log(`  ${cyan("--width")}  <bits>                  Data width for HDL (default: 32)`);
-    console.log(`  ${cyan("--opt")}                            Enable JIT optimizer`);
     console.log(`  ${cyan("--stats")}                          Print compilation stats`);
     console.log(`\n${bold("Targets:")}`);
     console.log(`  ${green("js")}        JavaScript (browser/Node.js)`);
-    console.log(`  ${green("verilog")}   Verilog HDL (FPGA/ASIC)`);
-    console.log(`  ${green("vhdl")}      VHDL (FPGA/ASIC)`);
-    console.log(`  ${green("sv")}        SystemVerilog (FPGA/ASIC)`);
     console.log(`\n${bold("Examples:")}`);
     console.log(`  ${dim("viper build main.vi")}                     # Compile to JS`);
-    console.log(`  ${dim("viper build main.vi --target verilog")}    # Compile to Verilog HDL`);
-    console.log(`  ${dim("viper build main.vi --target vhdl --clock 400 --width 64")}`);
+    console.log(`  ${dim("viper build main.vi --out dist/main.js")}  # Specify output file`);
     console.log();
     return;
   }
@@ -134,9 +127,7 @@ function printHelp(topic?: string) {
       ["repl",                   "Start interactive REPL (Read-Eval-Print-Loop)"],
     ]],
     ["Build & Compile", [
-      ["build <file.vi>",        "Compile to JS, Verilog, VHDL, or SystemVerilog"],
-      ["build --target verilog", "Compile directly to FPGA/ASIC hardware description"],
-      ["build --target vhdl",    "Compile to VHDL for ASIC synthesis"],
+      ["build <file.vi>",        "Compile Viper to JavaScript"],
     ]],
     ["Project", [
       ["new [name]",             "Scaffold a new Viper project"],
@@ -169,7 +160,6 @@ function printHelp(topic?: string) {
 
   console.log(`${bold("Flags:")}`);
   console.log(`  ${cyan("--trusted")}, ${cyan("-t")}     Trust the script (bypass safety limits)`);
-  console.log(`  ${cyan("--jit")},     ${cyan("-j")}     Enable JIT optimizer`);
   console.log(`  ${cyan("--verbose")}, ${cyan("-v")}     Verbose output`);
   console.log(`  ${cyan("--no-color")}         Disable colored output`);
   console.log(`  ${cyan("--version")}          Print version`);
@@ -216,9 +206,9 @@ function printWarn(msg: string) {
 // ===== LOADER =====
 async function loadInterpreter() {
   const { Interpreter, NUM, STR, BOOL, NULL, ARR, OBJ, NATIVE, viperToString,
-          Compiler, VM, jitOptimize, compileToHDL } = await import("@workspace/viper-lang");
+          Compiler, VM } = await import("@workspace/viper-lang");
   return { Interpreter, NUM, STR, BOOL, NULL, ARR, OBJ, NATIVE, viperToString,
-           Compiler, VM, jitOptimize, compileToHDL };
+           Compiler, VM };
 }
 
 // ===== MAKE CONTEXT =====
@@ -552,7 +542,7 @@ async function runFile(filePath: string, opts: { trusted?: boolean; jit?: boolea
   const { Interpreter, NUM, STR, BOOL, NULL, ARR, OBJ, NATIVE, viperToString } = lib;
 
   if (opts.verbose) {
-    printInfo(`Running ${cyan(filePath)} ${opts.trusted ? magenta("(trusted)") : ""} ${opts.jit ? blue("(JIT)") : ""}`);
+    printInfo(`Running ${cyan(filePath)} ${opts.trusted ? magenta("(trusted)") : ""}`);
   }
 
   const ctx = makeCtx(opts.verbose);
@@ -753,7 +743,7 @@ async function buildFile(filePath: string, opts: {
   console.log();
 
   const lib = await loadInterpreter();
-  const { Compiler, jitOptimize, compileToHDL } = lib;
+  const { Compiler } = lib;
   const { lex } = await import("@workspace/viper-lang");
   const { parse } = await import("@workspace/viper-lang");
 
@@ -763,7 +753,7 @@ async function buildFile(filePath: string, opts: {
     const tokens = lex(src);
     const ast = parse(tokens);
 
-    if (target === "js") {
+    if (target === "js" || !target) {
       const { compileToJS } = await import("@workspace/viper-lang");
       let jsCode = compileToJS(ast, src);
       writeFileSync(outFile, jsCode, "utf-8");
@@ -776,38 +766,8 @@ async function buildFile(filePath: string, opts: {
         console.log(`\n  ${dim("Lines:")}  ${lines}`);
         console.log(`  ${dim("Size:")}   ${jsCode.length} bytes`);
       }
-    } else if (["verilog", "vhdl", "systemverilog", "sv"].includes(target)) {
-      const hdlTarget = target === "sv" ? "systemverilog" : target as "verilog" | "vhdl" | "systemverilog";
-      const result = compileToHDL(ast, {
-        target: hdlTarget,
-        clockFreqMHz: opts.clock ?? 200,
-        moduleName,
-        dataWidth: opts.width ?? 32,
-        pipelineStages: 1,
-      });
-
-      ensureDir(outFile);
-      writeFileSync(outFile, result.code, "utf-8");
-
-      const elapsed = (performance.now() - t0).toFixed(2);
-      printSuccess(`Compiled to ${target.toUpperCase()} in ${cyan(elapsed + "ms")}`);
-      printSuccess(`Output: ${cyan(outFile)}`);
-
-      if (result.warnings.length > 0) {
-        console.log(`\n${yellow("Warnings:")}`);
-        result.warnings.forEach(w => console.log(`  ${yellow("⚠")} ${dim(w)}`));
-      }
-
-      if (opts.stats || true) {
-        console.log(`\n${bold("Hardware Estimate:")}`);
-        console.log(`  ${dim("Registers:")}       ${result.stats.registers}`);
-        console.log(`  ${dim("Logic gates:")}     ${result.stats.logicGates}`);
-        console.log(`  ${dim("Pipeline stages:")} ${result.stats.pipelineStages}`);
-        console.log(`  ${dim("Est. freq:")}       ${cyan(result.stats.estimatedFreqMHz + " MHz")}`);
-        console.log(`  ${dim("Est. area:")}       ${result.stats.estimatedAreaLUT} LUTs`);
-      }
     } else {
-      printError(`Unknown target: ${target}`, `Valid targets: js, verilog, vhdl, sv`);
+      printError(`Unknown target: ${target}. Only 'js' is supported.`);
       process.exit(1);
     }
   } catch (e: any) {
@@ -1012,7 +972,7 @@ A [Viper Invictus](https://viper-invictus.replit.app) project.
 viper run src/main.vi      # Run the project
 viper test src/test.vi     # Run tests
 viper build src/main.vi    # Compile to JavaScript
-viper build src/main.vi --target verilog  # Compile to FPGA HDL
+viper build src/main.vi --out dist/main.js  # Specify output file
 \`\`\`
 
 ## Package Management
@@ -1028,8 +988,6 @@ viper vpm list               # List installed packages
 .viper/packages/
 node_modules/
 dist/
-*.v          # compiled Verilog
-*.vhd        # compiled VHDL
 `, "utf-8");
 
   printBanner();
@@ -1067,27 +1025,9 @@ async function printInfo_cmd() {
     console.log(`  ${dim(k.padEnd(16))} ${cyan(v)}`);
   }
 
-  console.log(`\n${bold("Compiler Targets:")}`);
-  const targets = [
-    ["js",            "JavaScript (V8)"],
-    ["verilog",       "Verilog HDL (FPGA/ASIC)"],
-    ["vhdl",          "VHDL (IEEE 1076)"],
-    ["sv",            "SystemVerilog (IEEE 1800)"],
-  ];
-  for (const [t, d] of targets) {
-    console.log(`  ${green("✓")} ${cyan(t.padEnd(14))} ${dim(d)}`);
-  }
-
-  console.log(`\n${bold("Optimizations:")}`);
-  const opts = [
-    ["JIT",           "Superscalar block analysis + constant folding + DCE"],
-    ["Memory Guard",  "Intel MPX + ARM MTE memory protection simulation"],
-    ["Fusion",        "Instruction fusion for common patterns"],
-    ["Inlining",      "Small function inlining"],
-  ];
-  for (const [o, d] of opts) {
-    console.log(`  ${blue("⚡")} ${cyan(o.padEnd(14))} ${dim(d)}`);
-  }
+  console.log(`\n${bold("Compiler:")}`);
+  console.log(`  ${green("✓")} ${cyan("js".padEnd(14))} ${dim("JavaScript (browser/Node.js)")}`);
+  console.log(`  ${dim("Lexer → Parser → JS Emitter. No bytecode, no JIT.")}`);
 
   console.log(`\n${bold("Links:")}`);
   console.log(`  ${dim("IDE:")}      ${cyan("https://viper-invictus.replit.app")}`);
