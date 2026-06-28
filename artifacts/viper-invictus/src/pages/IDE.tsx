@@ -7,7 +7,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Link } from "wouter";
 import Editor from "@monaco-editor/react";
-import { Play, Square, RotateCcw, BookOpen, ChevronDown, ChevronRight, Terminal, Monitor, X, Menu, Globe, Shield, Download, Cpu, Package, Zap } from "lucide-react";
+import { Play, Square, RotateCcw, BookOpen, ChevronDown, ChevronRight, Terminal, Monitor, X, Menu, Globe, Download, Package } from "lucide-react";
 import { Interpreter, ViperError } from "@/lang";
 import type { DrawCommand, ExecutionContext } from "@/lang";
 import { ViperCanvas } from "@/components/ViperCanvas";
@@ -331,26 +331,13 @@ export default function IDE() {
           </button>
           <div className="flex-1" />
 
-          {/* Feature badges */}
-          <div className="hidden lg:flex items-center gap-1.5">
-            <span className="flex items-center gap-1 text-[10px] text-[#b8b0fc]/60 bg-[#7c6af7]/8 px-2 py-1 rounded border border-[#7c6af7]/15" title="JIT Superscalar Optimizer active">
-              <Zap className="w-3 h-3" /> JIT
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-yellow-400/60 bg-yellow-500/8 px-2 py-1 rounded border border-yellow-500/15" title="Intel MPX + ARM MTE Memory Protection">
-              <Shield className="w-3 h-3" /> MPX/MTE
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-emerald-400/60 bg-emerald-500/8 px-2 py-1 rounded border border-emerald-500/15" title="FPGA/ASIC HDL Compiler available — use viper build --target verilog">
-              <Cpu className="w-3 h-3" /> HDL
-            </span>
-          </div>
-
           {/* Download CLI button */}
           <a
             href="https://github.com/devinaiisthebest272829-debug/viper-invictus/archive/refs/heads/main.zip"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-white/5 text-white/40 border-white/10 hover:bg-white/8 hover:text-white/60"
-            title="Download Viper CLI — run Viper scripts, build to FPGA/HDL, and use vpm"
+            title="Download Viper CLI — run .vi scripts from the terminal"
           >
             <Download className="w-3.5 h-3.5" />
             CLI
@@ -371,7 +358,7 @@ export default function IDE() {
           <button
             onClick={runCode}
             disabled={isRunning}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#7c6af7] to-[#6b5de4] hover:from-[#8d7ff8] hover:to-[#7c6af7] text-white text-sm font-medium transition-all shadow-lg shadow-[#7c6af7]/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#7c6af7] hover:bg-[#8d7ff8] text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Play className="w-3.5 h-3.5" />
             Run
