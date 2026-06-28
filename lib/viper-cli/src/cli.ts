@@ -168,7 +168,7 @@ function printHelp(topic?: string) {
   console.log(`  ${dim("viper run hello.vi")}                Run a script`);
   console.log(`  ${dim("viper eval 'print(42 * 42)'")}       Inline eval`);
   console.log(`  ${dim("viper repl")}                        Interactive shell`);
-  console.log(`  ${dim("viper build main.vi --target verilog --clock 500")}  FPGA target`);
+  console.log(`  ${dim("viper build main.vi --out dist/main.js")}   Specify output file`);
   console.log(`  ${dim("viper vpm install math-ext crypto")} Install packages`);
   console.log(`  ${dim("viper test suite.vi")}               Run test file`);
   console.log(`  ${dim("viper check main.vi")}               Lint & type check`);
@@ -527,7 +527,7 @@ function injectPackages(interp: any, source: string) {
 }
 
 // ===== RUN FILE =====
-async function runFile(filePath: string, opts: { trusted?: boolean; jit?: boolean; verbose?: boolean } = {}) {
+async function runFile(filePath: string, opts: { trusted?: boolean; verbose?: boolean } = {}) {
   const absPath = resolve(filePath);
   if (!existsSync(absPath)) {
     printError(`File not found: ${filePath}`, "Make sure the file path is correct.");
@@ -720,9 +720,6 @@ async function startREPL(opts: { trusted?: boolean; verbose?: boolean } = {}) {
 async function buildFile(filePath: string, opts: {
   target?: string;
   out?: string;
-  clock?: number;
-  width?: number;
-  jit?: boolean;
   stats?: boolean;
   verbose?: boolean;
 }) {
@@ -733,7 +730,7 @@ async function buildFile(filePath: string, opts: {
 
   const src = readFileSync(filePath, "utf-8");
   const target = opts.target ?? "js";
-  const outFile = opts.out ?? filePath.replace(/\.vi(per)?$/, `.${target === "verilog" ? "v" : target === "vhdl" ? "vhd" : target === "sv" ? "sv" : "js"}`);
+  const outFile = opts.out ?? filePath.replace(/\.vi(per)?$/, ".js");
   const moduleName = basename(filePath).replace(/\.vi(per)?$/, "").replace(/[^a-zA-Z0-9]/g, "_");
 
   console.log(`\n${bold("Viper Build")}`);
@@ -1072,7 +1069,7 @@ async function main() {
 
   // Global flags
   const trusted = argv.includes("--trusted") || argv.includes("-t");
-  const jit = argv.includes("--jit") || argv.includes("-j");
+  // --jit / -j flags removed (no custom JIT optimizer)
   const verbose = argv.includes("--verbose") || argv.includes("-v");
   const noColor = argv.includes("--no-color");
   if (noColor) (process.env as any).NO_COLOR = "1";
@@ -1094,7 +1091,7 @@ async function main() {
   if (cmd === "run") {
     const file = positional[1];
     if (!file) { printError("Missing file path", "Usage: viper run <file.vi>"); process.exit(1); }
-    await runFile(file, { trusted, jit, verbose });
+    await runFile(file, { trusted, verbose });
     return;
   }
 
@@ -1127,14 +1124,9 @@ async function main() {
     }
     const targetIdx = argv.indexOf("--target");
     const outIdx = argv.indexOf("--out");
-    const clockIdx = argv.indexOf("--clock");
-    const widthIdx = argv.indexOf("--width");
     await buildFile(file, {
       target: targetIdx >= 0 ? argv[targetIdx + 1] : "js",
       out: outIdx >= 0 ? argv[outIdx + 1] : undefined,
-      clock: clockIdx >= 0 ? parseInt(argv[clockIdx + 1]) : 200,
-      width: widthIdx >= 0 ? parseInt(argv[widthIdx + 1]) : 32,
-      jit,
       stats: argv.includes("--stats"),
       verbose,
     });
@@ -1223,7 +1215,7 @@ async function main() {
 
   // If it looks like a file, run it directly
   if (cmd.endsWith(".vi") || cmd.endsWith(".viper")) {
-    await runFile(cmd, { trusted, jit, verbose });
+    await runFile(cmd, { trusted, verbose });
     return;
   }
 
