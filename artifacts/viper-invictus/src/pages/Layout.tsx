@@ -7,6 +7,7 @@
 import { Link, useLocation } from "wouter";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { ViperLogo } from "@/components/ViperLogo";
 
 const NAV = [
   { path: "/", label: "IDE" },
@@ -33,7 +34,7 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
         <div className="max-w-7xl mx-auto px-4 flex items-center h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1 mr-8 shrink-0">
-            <img src={`${import.meta.env.BASE_URL}viper-logo.svg`} alt="Viper Invictus" className="w-8 h-8 rounded-lg" />
+            <ViperLogo size={32} className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-sm hidden sm:block">Viper Invictus</span>
           </Link>
 
@@ -104,7 +105,7 @@ export function Layout({ children, fullWidth = false }: { children: React.ReactN
           {/* Brand */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <img src={`${import.meta.env.BASE_URL}viper-logo.svg`} alt="Viper Invictus" className="w-6 h-6 rounded-md" />
+              <ViperLogo size={24} className="w-6 h-6 rounded-md" />
               <span className="font-semibold text-white/70">Viper Invictus</span>
             </div>
             <p className="text-xs text-white/30 leading-relaxed">
