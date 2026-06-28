@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { ChevronRight, CheckCircle, Circle, Play, BookOpen, Lightbulb, ArrowRight, RotateCcw } from "lucide-react";
+import { ViperLogo } from "@/components/ViperLogo";
 
 interface Lesson {
   id: string;
@@ -369,7 +370,7 @@ export default function Learn() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <img src={`${import.meta.env.BASE_URL}viper-logo.svg`} alt="Viper Invictus" className="w-7 h-7 rounded-lg" />
+            <ViperLogo size={28} className="w-7 h-7 rounded-lg" />
             Learn Viper Invictus
           </h1>
           <span className="text-sm text-white/40">{completed.size} / {LESSONS.length} lessons completed</span>
