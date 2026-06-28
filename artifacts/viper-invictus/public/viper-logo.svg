@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <!-- Background -->
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#1c1550"/>
+      <stop offset="100%" stop-color="#07071a"/>
+    </radialGradient>
+
+    <!-- Snake body gradient: purple to deep violet -->
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="45%" stop-color="#7c6af7"/>
+      <stop offset="100%" stop-color="#4c3db0"/>
+    </linearGradient>
+
+    <!-- Head fill -->
+    <linearGradient id="headGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#5b4de4"/>
+    </linearGradient>
+
+    <!-- Iris -->
+    <radialGradient id="iris" cx="35%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#d1fae5"/>
+      <stop offset="50%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#065f46"/>
+    </radialGradient>
+
+    <!-- Eye glow -->
+    <filter id="eyeGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Body shadow -->
+    <filter id="bodyShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8"
+                   flood-color="#3d30a0" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Clip -->
+    <clipPath id="card">
+      <rect width="200" height="200" rx="40"/>
+    </clipPath>
+  </defs>
+
+  <!-- ─── BACKGROUND ─── -->
+  <rect width="200" height="200" rx="40" fill="url(#bg)"/>
+  <rect x="2.5" y="2.5" width="195" height="195" rx="38"
+        fill="none" stroke="#7c6af7" stroke-width="2" opacity="0.22"/>
+
+  <g clip-path="url(#card)">
+
+    <!-- ═══════════════════════════════
+         SNAKE BODY — bold V-coil shape
+         Tail enters top-left, curves
+         to centre-bottom, sweeps back
+         up to the head at top-right.
+    ═══════════════════════════════ -->
+    <g filter="url(#bodyShadow)">
+
+      <!-- Outer body (thick, warm purple) -->
+      <path d="M 30,36 C 16,82 60,148 100,162
+               C 140,148 184,82 170,36"
+            fill="none" stroke="url(#bodyGrad)"
+            stroke-width="34" stroke-linecap="round"
+            stroke-linejoin="round"/>
+
+      <!-- Inner highlight stripe (cool top light) -->
+      <path d="M 30,36 C 16,82 60,148 100,162
+               C 140,148 184,82 170,36"
+            fill="none" stroke="#e0d7ff"
+            stroke-width="10" stroke-linecap="round"
+            opacity="0.16"/>
+
+    </g>
+
+    <!-- ── SCALE PATTERN on body ──
+         Diamond marks along the snake's length.
+         Placed at intervals following the V curve. -->
+    <g fill="none" stroke="#a78bfa" stroke-width="1.1" opacity="0.45">
+      <!-- Left arm scales -->
+      <path d="M 34,48 L 38,43 L 42,48 L 38,53 Z"/>
+      <path d="M 29,66 L 33,61 L 37,66 L 33,71 Z"/>
+      <path d="M 30,86 L 34,81 L 38,86 L 34,91 Z"/>
+      <path d="M 38,106 L 42,101 L 46,106 L 42,111 Z"/>
+      <path d="M 52,126 L 56,121 L 60,126 L 56,131 Z"/>
+      <path d="M 72,144 L 76,139 L 80,144 L 76,149 Z"/>
+      <!-- Right arm scales (mirrored) -->
+      <path d="M 158,48 L 162,43 L 166,48 L 162,53 Z"/>
+      <path d="M 163,66 L 167,61 L 171,66 L 167,71 Z"/>
+      <path d="M 162,86 L 166,81 L 170,86 L 166,91 Z"/>
+      <path d="M 154,106 L 158,101 L 162,106 L 158,111 Z"/>
+      <path d="M 140,126 L 144,121 L 148,126 L 144,131 Z"/>
+      <path d="M 120,144 L 124,139 L 128,144 L 124,149 Z"/>
+      <!-- Bottom center -->
+      <path d="M 94,162 L 98,157 L 102,162 L 98,167 Z"/>
+    </g>
+
+    <!-- ── TAIL TIP ── (narrows to a fine point, upper-left) -->
+    <path d="M 30,36 C 26,26 20,16 16,10"
+          fill="none" stroke="#6b5de4"
+          stroke-width="10" stroke-linecap="round"/>
+    <path d="M 30,36 C 26,26 20,16 16,10"
+          fill="none" stroke="#c4b5fd"
+          stroke-width="3" stroke-linecap="round" opacity="0.18"/>
+
+    <!-- ═══════════════════════════════
+         HEAD — upper-right end of V
+         Oval head shape, slightly angled
+         to the right and slightly down
+    ═══════════════════════════════ -->
+    <!-- Neck thickening before head (natural anatomy) -->
+    <ellipse cx="170" cy="36" rx="24" ry="20"
+             fill="url(#bodyGrad)" transform="rotate(-20 170 36)"/>
+
+    <!-- Main head mass — wider oval -->
+    <ellipse cx="172" cy="32" rx="32" ry="20"
+             fill="url(#headGrad)" transform="rotate(-18 172 32)"/>
+
+    <!-- Head top highlight -->
+    <ellipse cx="166" cy="24" rx="22" ry="10"
+             fill="white" opacity="0.10" transform="rotate(-18 166 24)"/>
+
+    <!-- ── SCALES on head ── (a few curved lines) -->
+    <g stroke="#c4b5fd" stroke-width="1" fill="none" opacity="0.38"
+       stroke-linecap="round">
+      <path d="M 152,18 Q 168,14 182,22"/>
+      <path d="M 156,28 Q 172,24 184,32"/>
+      <path d="M 158,36 Q 172,33 182,40"/>
+    </g>
+
+    <!-- ── SUPRAOCULAR BROW RIDGE ──
+         (the heavy scale above a viper's eye — very characteristic) -->
+    <path d="M 153,20 Q 162,14 172,18"
+          fill="none" stroke="#d8b4fe"
+          stroke-width="3.5" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- ── SNOUT ── (blunt rounded tip at right) -->
+    <ellipse cx="192" cy="36" rx="12" ry="9"
+             fill="#5b4de4" transform="rotate(-18 192 36)"/>
+
+    <!-- ── NOSTRIL ── -->
+    <ellipse cx="193" cy="31" rx="3.5" ry="2.8"
+             fill="#07071a" transform="rotate(-18 193 31)" opacity="0.85"/>
+
+    <!-- ── HEAT PIT (between eye and nostril) ── -->
+    <ellipse cx="183" cy="26" rx="4.5" ry="3.8"
+             fill="#07071a" transform="rotate(-18 183 26)" opacity="0.80"/>
+
+    <!-- ── EYE ── -->
+    <!-- Socket recess -->
+    <circle cx="164" cy="26" r="15" fill="#04040e"/>
+
+    <!-- Iris with glow -->
+    <circle cx="164" cy="26" r="10" fill="url(#iris)" filter="url(#eyeGlow)"/>
+
+    <!-- Iris border ring -->
+    <circle cx="164" cy="26" r="10"
+            fill="none" stroke="#047857" stroke-width="1.2" opacity="0.6"/>
+
+    <!-- Radial spokes -->
+    <g stroke="#065f46" stroke-width="1" opacity="0.65">
+      <line x1="164" y1="16"  x2="164" y2="21"/>
+      <line x1="171" y1="19"  x2="168" y2="23"/>
+      <line x1="174" y1="26"  x2="169" y2="26"/>
+      <line x1="171" y1="33"  x2="168" y2="29"/>
+      <line x1="164" y1="36"  x2="164" y2="31"/>
+      <line x1="157" y1="33"  x2="160" y2="29"/>
+      <line x1="154" y1="26"  x2="159" y2="26"/>
+      <line x1="157" y1="19"  x2="160" y2="23"/>
+    </g>
+
+    <!-- Vertical slit pupil -->
+    <ellipse cx="164" cy="26" rx="3.2" ry="9" fill="#010109"/>
+
+    <!-- Specular highlights -->
+    <ellipse cx="168" cy="20" rx="3.5" ry="2.4" fill="white" opacity="0.88"/>
+    <circle  cx="160" cy="31" r="1.4"            fill="white" opacity="0.22"/>
+
+    <!-- ── MOUTH + FANGS ──
+         Slightly open at tip of snout -->
+    <!-- Mouth slit -->
+    <path d="M 184,34 Q 195,38 198,46"
+          fill="none" stroke="#07071a"
+          stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+
+    <!-- Upper fang (ivory) -->
+    <path d="M 193,38 L 200,54 Q 195,50 191,42 Z"
+          fill="#ede9fe" opacity="0.9"/>
+
+    <!-- ── TONGUE ── -->
+    <path d="M 197,45 L 212,36"
+          stroke="#f87171" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 212,36 L 222,26"
+          stroke="#f87171" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path d="M 212,36 L 222,44"
+          stroke="#f87171" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+
+  </g><!-- end clip -->
+
+  <!-- Top sheen -->
+  <ellipse cx="100" cy="55" rx="70" ry="22"
+           fill="white" opacity="0.028"/>
+</svg>
