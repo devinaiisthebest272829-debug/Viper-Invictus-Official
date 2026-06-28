@@ -10,7 +10,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 export default defineConfig({
-  base: "/viper-invictus/",
+  base: "/Viper-Invictus-Official/",
   plugins: [
     react(),
     tailwindcss(),
