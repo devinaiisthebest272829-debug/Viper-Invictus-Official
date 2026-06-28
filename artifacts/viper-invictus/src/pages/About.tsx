@@ -6,12 +6,13 @@
 
 import { Link } from "wouter";
 import { Code2, Heart, ExternalLink, Github } from "lucide-react";
+import { ViperLogo } from "@/components/ViperLogo";
 
 export default function About() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-10 mt-6">
-        <img src={`${import.meta.env.BASE_URL}viper-logo.svg`} alt="Viper Invictus" className="w-20 h-20 rounded-2xl mx-auto mb-5" />
+        <ViperLogo size={80} className="w-20 h-20 rounded-2xl mx-auto mb-5" />
         <h1 className="text-3xl font-bold mb-2">Viper Invictus</h1>
         <p className="text-white/50">A scripting language for games, art, and interactive programs.</p>
       </div>
