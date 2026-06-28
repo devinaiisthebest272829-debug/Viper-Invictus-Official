@@ -18,7 +18,7 @@
 
 ## What is Viper Invictus?
 
-Viper Invictus is a dynamically-typed scripting language that compiles to JavaScript and runs in the browser or via Node.js. It features a full browser IDE with Monaco editor, canvas rendering, and a CLI for local scripts. The syntax is clean and expressive — a blend of Python's readability and JavaScript's power.
+Viper Invictus is a dynamically-typed scripting language that compiles to JavaScript and runs in the browser or via Node.js. It features a full browser IDE with Monaco editor, canvas rendering, and a CLI for local scripts. The syntax is clean and expressive -- a blend of Python's readability and JavaScript's power.
 
 ```viper
 fn fib(n) {
@@ -42,19 +42,19 @@ Viper compiles to native JS and executes via V8. The compiler is a straightforwa
 | Ray-sphere (1M rays) | **1.06 ns/ray** | ~120 ns/ray | ~4.5 ns/ray |
 | Function calls (500K) | **16.7 ns/op** | ~200 ns/op | ~1 ns/op |
 
-> Ray-sphere intersection benchmark: **941 Mrays/s** — 112× faster than Python, 4× faster than naive C++.
+> Ray-sphere intersection benchmark: **941 Mrays/s** -- 112× faster than Python, 4× faster than naive C++.
 >
-> Why it's fast: Viper emits plain JavaScript (loops become `for`, math becomes `Math.*`, arrays become native JS arrays). V8's existing optimizer handles the rest. No custom JIT, no bytecode VM — just direct compilation to the platform's native runtime.
+> Why it's fast: Viper emits plain JavaScript (loops become `for`, math becomes `Math.*`, arrays become native JS arrays). V8's existing optimizer handles the rest. No custom JIT, no bytecode VM -- just direct compilation to the platform's native runtime.
 
 ---
 
 ## Features
 
-- **JS Compiler** — Viper source → native JS. The compiler lexes, parses, and emits plain JavaScript that V8 runs at full speed.
-- **Browser IDE** — Monaco editor, live canvas, console output, file tabs
-- **Canvas API** — `canvas.rect()`, `canvas.circle()`, `canvas.text()`, game loops, keyboard/mouse events
-- **CLI** — Run `.vi` scripts from the terminal via `viper-cli`
-- **Standard Library** — `math`, `timer`, `os`, `fs`, `env`, `http`, `storage`
+- **JS Compiler** -- Viper source → native JS. The compiler lexes, parses, and emits plain JavaScript that V8 runs at full speed.
+- **Browser IDE** -- Monaco editor, live canvas, console output, file tabs
+- **Canvas API** -- `canvas.rect()`, `canvas.circle()`, `canvas.text()`, game loops, keyboard/mouse events
+- **CLI** -- Run `.vi` scripts from the terminal via `viper-cli`
+- **Standard Library** -- `math`, `timer`, `os`, `fs`, `env`, `http`, `storage`
 
 ---
 
@@ -82,7 +82,7 @@ canvas.clear("#111")
 canvas.circle(100, 100, 40, "#7c6af7")
 canvas.text(100, 200, "Hello!", 20, "#fff")
 
-// Math (compiles to Math.* — no overhead)
+// Math (compiles to Math.* -- no overhead)
 let r = math.sqrt(2.0)
 let s = math.sin(math.PI / 4)
 ```
@@ -92,7 +92,7 @@ let s = math.sin(math.PI / 4)
 ## Getting Started
 
 ### Browser IDE
-Visit the [live IDE](https://viper-invictus.replit.app) to start coding immediately — no install required.
+Visit the [live IDE](https://viper-invictus.replit.app) to start coding immediately -- no install required.
 
 ### CLI
 ```bash
