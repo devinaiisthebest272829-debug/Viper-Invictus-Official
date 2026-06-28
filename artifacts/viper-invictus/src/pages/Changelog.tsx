@@ -4,7 +4,7 @@
 // Viper Invictus - A fast scripting language with browser IDE
 // All rights reserved.
 
-import { GitCommit, Sparkles, Bug, Zap, Shield, Globe, Code2, Cpu, Package, Terminal } from "lucide-react";
+import { GitCommit, Plus, Bug, ArrowUp, Shield, Globe, Code2, Terminal } from "lucide-react";
 
 interface Change {
   type: "feature" | "fix" | "improvement" | "security";
@@ -22,48 +22,28 @@ const CHANGELOG: Version[] = [
     version: "2.0",
     date: "June 2026",
     changes: [
-      { type: "feature", text: "Superscalar Execution Engine: groups independent operations (math, counter advance, memory check) into parallel execution blocks, executing multiple instructions per cycle" },
-      { type: "feature", text: "JIT Optimizer: constant folding, dead code elimination, instruction fusion, and superscalar block analysis dramatically reduces instruction count before execution" },
-      { type: "feature", text: "Intel MPX + ARM MTE Memory Protection: tagged memory regions, bounds checking, pointer tagging — catches out-of-bounds and use-after-free at the VM level" },
-      { type: "feature", text: "FPGA/ASIC HDL Compiler: compile Viper directly to Verilog, VHDL, or SystemVerilog for FPGA deployment — leave software-based C++ completely in the dust" },
-      { type: "feature", text: "HDL targets: Xilinx Vivado, Intel Quartus, TSMC PDK synthesis ready — generates full module + testbench with timing constraints" },
-      { type: "feature", text: "Configurable hardware: set clock frequency (up to 1 GHz+), data bus width (8/16/32/64-bit), and pipeline stages for FPGA/ASIC targets" },
-      { type: "feature", text: "VPM — Viper Package Manager: install/remove/search/update/publish packages with lockfile, manifest (viper.json), and GitHub-based registry" },
-      { type: "feature", text: "Stdlib library suite: std, net, io, crypto, json, math-ext, async, cli-kit, test, canvas — all installable via `viper vpm install`" },
-      { type: "feature", text: "math-ext package: FFT, matrix ops, complex numbers, statistics, linear algebra — `viper vpm install math-ext`" },
-      { type: "feature", text: "crypto package: SHA-256, Base64, AES-256, random bytes, UUID generation" },
-      { type: "feature", text: "test package: built-in unit testing with describe/it/expect/assert, similar to Jest" },
-      { type: "feature", text: "cli-kit package: terminal colors, tables, progress bars, prompts for building CLI apps in Viper" },
-      { type: "feature", text: "Internet access: native HTTP GET/POST via `fetch()` and `http.get/post()` — no curl dependency" },
-      { type: "feature", text: "Interactive REPL: `viper repl` starts a full Read-Eval-Print-Loop with tab completion, multi-line input, .load/.reset/.time/.vars commands" },
-      { type: "feature", text: "Project scaffolding: `viper new my-project` creates viper.json, src/main.vi, src/test.vi, README.md, .gitignore" },
-      { type: "feature", text: "Build command: `viper build <file> --target <js|verilog|vhdl|sv>` compiles to any target" },
-      { type: "feature", text: "Check command: `viper check <file>` lints source code with complexity analysis and style warnings" },
-      { type: "feature", text: "Fmt command: `viper fmt <file>` auto-formats Viper source code" },
-      { type: "feature", text: "Test runner: `viper test <file>` runs test files using the built-in test library" },
-      { type: "feature", text: "Thread command: `viper thread <file>` runs scripts in parallel worker threads" },
-      { type: "feature", text: "Info command: `viper info` shows runtime, compiler targets, optimizations, and links" },
-      { type: "feature", text: "CLI downloadable from the IDE — one-click download of the full CLI package" },
-      { type: "improvement", text: "Fully colored CLI output with ANSI codes: errors in red, successes in green, info in blue, warnings in yellow — disable with NO_COLOR" },
-      { type: "improvement", text: "Source context in error messages: shows the exact line and position of the error" },
-      { type: "improvement", text: "os module: exec(), platform, arch, cpus, memory, hostname" },
-      { type: "improvement", text: "process module: args, cwd(), exit(), pid, platform, version" },
-      { type: "improvement", text: "storage module: set/get/delete/keys — persists to .viper/storage.json" },
-      { type: "improvement", text: "timer module (CLI): now(), date(), sleep() — synchronous sleep for scripting" },
-      { type: "improvement", text: "fs.stat(), fs.mkdir() added to the file system module" },
-      { type: "improvement", text: "Auto-detect `import \"pkg\"` statements and inject package code before execution" },
-      { type: "improvement", text: "CLI hardware estimate output: register count, gate count, pipeline stages, MHz, LUT area" },
+      { type: "feature", text: "Compile cache: source is hashed on every execute() call — if the hash matches the last run, the lex/parse/compile pipeline is skipped entirely for a near-instant repeat run" },
+      { type: "feature", text: "Frame count batching: the interpreter loop overhead check now fires every 512 frames instead of every frame, cutting animation loop overhead by roughly 500×" },
+      { type: "feature", text: "Backend execution mode: send code to the Node.js API server instead of the browser VM — useful for code that uses fs, env, or http" },
+      { type: "feature", text: "CLI download: grab the full Viper CLI package directly from the IDE toolbar" },
+      { type: "feature", text: "Mobile layout: responsive sidebar and editor with touch-friendly controls and a full-screen editor on small screens" },
+      { type: "improvement", text: "VM function calls now look up compiled bytecode from the program table and push proper call frames, fixing incorrect NULL returns" },
+      { type: "improvement", text: "Error banner in the editor shows the exact line number of the first error and can be dismissed with one click" },
+      { type: "improvement", text: "Backend/browser toggle in the toolbar lets you switch execution targets without leaving the editor" },
+      { type: "improvement", text: "Console output is capped at 500 lines to keep the UI responsive during long or looping runs" },
+      { type: "fix", text: "Canvas click handler now maps event coordinates correctly relative to canvas bounds" },
+      { type: "fix", text: "Trusted mode bypass: the infinite loop guard is disabled for built-in examples and applied only to user-written code" },
     ],
   },
   {
     version: "1.3",
     date: "June 2026",
     changes: [
-      { type: "improvement", text: "Massive engine performance boost: Viper-to-JavaScript compiler for native execution speed" },
+      { type: "improvement", text: "Viper-to-JavaScript compiler for native execution speed via V8 TurboFan" },
       { type: "improvement", text: "Compiler handles all language constructs: variables, functions, classes, loops, conditionals, arrays, objects" },
-      { type: "improvement", text: "Mandelbrot Explorer now runs in real-time with compiled JS backend (was unusably slow)" },
-      { type: "improvement", text: "Automatic fallback to tree-walker interpreter if compiler encounters edge cases" },
-      { type: "improvement", text: "Approaches/beats Python speed on compute-intensive tasks like fractals, particle systems, and sorting" },
+      { type: "improvement", text: "Mandelbrot Explorer now renders in real-time with the compiled JS backend (was unusably slow with the tree-walker)" },
+      { type: "improvement", text: "Automatic fallback to the tree-walker interpreter if the compiler hits an edge case" },
+      { type: "improvement", text: "Compute-intensive examples now approach Python speed on loops, fractals, and sorting" },
     ],
   },
   {
@@ -104,7 +84,7 @@ const CHANGELOG: Version[] = [
       { type: "feature", text: "Interactive examples: Snake, Bouncing Balls, Generative Art, Clock, Sorting Visualizer, 3D Wireframe, Game of Life, Fractal Tree, Fireworks, Pong, Mandelbrot" },
       { type: "feature", text: "Learn page with 10 guided lessons and progress tracking" },
       { type: "feature", text: "Comprehensive documentation with search and copy-to-clipboard" },
-      { type: "improvement", text: "Error reporting shows all errors at once during parsing" },
+      { type: "improvement", text: "Error reporting shows all parse errors at once, not just the first one" },
       { type: "improvement", text: "Syntax highlighting for the Viper language in Monaco editor" },
       { type: "fix", text: "Fixed keyboard input handling for canvas games with global key listener" },
     ],
@@ -113,9 +93,9 @@ const CHANGELOG: Version[] = [
 
 function getTypeIcon(type: Change["type"]) {
   switch (type) {
-    case "feature": return <Sparkles className="w-3.5 h-3.5 text-[#7c6af7]" />;
+    case "feature": return <Plus className="w-3.5 h-3.5 text-[#7c6af7]" />;
     case "fix": return <Bug className="w-3.5 h-3.5 text-emerald-400" />;
-    case "improvement": return <Zap className="w-3.5 h-3.5 text-yellow-400" />;
+    case "improvement": return <ArrowUp className="w-3.5 h-3.5 text-yellow-400" />;
     case "security": return <Shield className="w-3.5 h-3.5 text-red-400" />;
   }
 }
@@ -132,21 +112,18 @@ function getTypeLabel(type: Change["type"]) {
 function getVersionBadges(version: string) {
   if (version === "2.0") return (
     <div className="ml-auto flex items-center gap-2 flex-wrap">
-      <span className="flex items-center gap-1 text-[10px] text-[#b8b0fc] bg-[#7c6af7]/10 px-2 py-0.5 rounded border border-[#7c6af7]/20">
-        <Cpu className="w-3 h-3" /> FPGA/HDL
+      <span className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">
+        <Terminal className="w-3 h-3" /> Compiler
       </span>
       <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-        <Package className="w-3 h-3" /> vpm
-      </span>
-      <span className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">
-        <Terminal className="w-3 h-3" /> JIT
+        <Globe className="w-3 h-3" /> Backend
       </span>
     </div>
   );
   if (version === "1.3") return (
     <div className="ml-auto">
       <span className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">
-        <Zap className="w-3 h-3" /> JS Compiler
+        <Terminal className="w-3 h-3" /> JS Compiler
       </span>
     </div>
   );
@@ -168,15 +145,15 @@ export default function Changelog() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-2">Changelog</h1>
-        <p className="text-sm text-white/50">Version history and what's new in Viper Invictus</p>
+        <p className="text-sm text-white/50">Version history and release notes for Viper Invictus</p>
       </div>
 
       <div className="space-y-6">
         {CHANGELOG.map(version => (
-          <div key={version.version} className={`bg-white/5 border rounded-xl overflow-hidden ${version.version === "2.0" ? "border-[#7c6af7]/30 shadow-lg shadow-[#7c6af7]/5" : "border-white/10"}`}>
+          <div key={version.version} className={`bg-white/5 border rounded-xl overflow-hidden ${version.version === "2.0" ? "border-[#7c6af7]/30" : "border-white/10"}`}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-white/[0.02] flex-wrap gap-y-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${version.version === "2.0" ? "bg-gradient-to-br from-[#7c6af7] via-[#a78bfa] to-[#e94560]" : "bg-gradient-to-br from-[#7c6af7] to-[#e94560]"}`}>
-                <GitCommit className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-[#7c6af7]/15 flex items-center justify-center shrink-0">
+                <GitCommit className="w-4 h-4 text-[#7c6af7]" />
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-white/90 flex items-center gap-2">
