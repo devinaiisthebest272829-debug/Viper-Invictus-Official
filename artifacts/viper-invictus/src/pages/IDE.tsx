@@ -333,7 +333,7 @@ export default function IDE() {
 
           {/* Download CLI button */}
           <a
-            href="https://github.com/devinaiisthebest272829-debug/viper-invictus/archive/refs/heads/main.zip"
+            href="https://github.com/devinaiisthebest272829-debug/Viper-Invictus-Official/archive/refs/heads/main.zip"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-white/5 text-white/40 border-white/10 hover:bg-white/8 hover:text-white/60"
