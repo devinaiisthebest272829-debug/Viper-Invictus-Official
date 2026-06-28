@@ -39,7 +39,7 @@ const CHANGELOG: Version[] = [
     version: "1.3",
     date: "June 2026",
     changes: [
-      { type: "improvement", text: "Viper-to-JavaScript compiler for native execution speed via V8 TurboFan" },
+      { type: "improvement", text: "Viper-to-JavaScript compiler: lex, parse, then emit JS that runs at native speed through V8" },
       { type: "improvement", text: "Compiler handles all language constructs: variables, functions, classes, loops, conditionals, arrays, objects" },
       { type: "improvement", text: "Mandelbrot Explorer now renders in real-time with the compiled JS backend (was unusably slow with the tree-walker)" },
       { type: "improvement", text: "Automatic fallback to the tree-walker interpreter if the compiler hits an edge case" },
