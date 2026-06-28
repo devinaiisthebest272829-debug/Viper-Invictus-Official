@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { Play, ExternalLink, Star, Eye, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { Play, ExternalLink, Star, Eye, Heart, ArrowRight } from "lucide-react";
 
 interface ShowcaseItem {
   id: string;
@@ -123,14 +123,9 @@ export default function Showcase() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e94560] to-[#f59e0b] flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Showcase</h1>
-            <p className="text-sm text-white/50">Amazing projects built with Viper Invictus</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Showcase</h1>
+          <p className="text-sm text-white/50">Projects built with Viper Invictus</p>
         </div>
       </div>
 
@@ -141,7 +136,7 @@ export default function Showcase() {
           {featured.map(item => (
             <div
               key={item.id}
-              className="bg-gradient-to-br from-[#7c6af7]/10 to-[#e94560]/5 border border-white/10 rounded-xl p-5 hover:border-[#7c6af7]/30 transition-all group"
+              className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-[#7c6af7]/30 transition-all group"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] px-2 py-0.5 rounded bg-[#7c6af7]/15 text-[#b8b0fc] uppercase tracking-wider">
