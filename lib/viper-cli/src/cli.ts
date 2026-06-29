@@ -4,12 +4,12 @@
 // Viper Invictus - A fast scripting language with browser IDE
 // All rights reserved.
 
-#!/usr/bin/env node
-// Viper Invictus CLI v2.0
+// Viper Invictus CLI v2.1
 // A world-class command-line interface for the Viper programming language
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, openSync, readSync, closeSync } from "fs";
 import { dirname, resolve, join, extname, basename } from "path";
+import { fileURLToPath } from "url";
 import { spawn, execSync } from "child_process";
 import { createInterface } from "readline";
 import { cpus, totalmem, hostname } from "os";
@@ -125,6 +125,7 @@ function printHelp(topic?: string) {
       ["run <file.vi>",          "Execute a Viper script file"],
       ["eval <code>",            "Run inline Viper code"],
       ["repl",                   "Start interactive REPL (Read-Eval-Print-Loop)"],
+      ["benchmark [file.vi]",    "Run performance benchmarks (vs Python & JS)"],
     ]],
     ["Build & Compile", [
       ["build <file.vi>",        "Compile Viper to JavaScript"],
@@ -1010,8 +1011,8 @@ async function printInfo_cmd() {
 
   console.log(`${bold("Runtime Information")}\n`);
   const items = [
-    ["CLI Version",    "2.0.0"],
-    ["Language",       "Viper Invictus v2.0"],
+    ["CLI Version",    "2.1.0"],
+    ["Language",       "Viper Invictus v2.1"],
     ["Node.js",        process.version],
     ["Platform",       `${process.platform} ${process.arch}`],
     ["CPUs",           String(cpus().length)],
@@ -1084,7 +1085,7 @@ async function main() {
   }
 
   if (argv.includes("--version") || cmd === "version") {
-    console.log("Viper Invictus CLI v2.0.0");
+    console.log("Viper Invictus CLI v2.1.0");
     process.exit(0);
   }
 
@@ -1163,11 +1164,17 @@ async function main() {
     return;
   }
 
+  if (cmd === "benchmark" || cmd === "bench") {
+    const benchDir = positional[1] ? resolve(positional[1]) : resolve(dirname(fileURLToPath(import.meta.url)), "..", "benchmarks", "viper-vs-python.vi");
+    await runFile(benchDir, { trusted: true, verbose: false });
+    return;
+  }
+
   if (cmd === "thread") {
     const file = positional[1];
     if (!file) { printError("Missing file path", "Usage: viper thread <file.vi>"); process.exit(1); }
     console.log(`${blue("⟳")} Spawning thread: ${cyan(file)}`);
-    const child = spawn("npx", ["tsx", resolve(__dirname, "cli.ts"), "run", file], {
+    const child = spawn("npx", ["tsx", resolve(dirname(fileURLToPath(import.meta.url)), "cli.ts"), "run", file], {
       cwd: process.cwd(),
       stdio: "inherit",
       env: process.env,

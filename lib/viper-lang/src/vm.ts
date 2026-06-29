@@ -189,421 +189,227 @@ export class VM {
     env.define("math", mathObj);
   }
 
+  private dispatchTable: ((instr: Instruction) => void)[] = [];
+  private dispatchInitialized = false;
+
+  private initDispatchTable(): void {
+    if (this.dispatchInitialized) return;
+    this.dispatchInitialized = true;
+    const dt: ((instr: Instruction) => void)[] = new Array(60).fill(null);
+    dt[Op.PUSH_CONST] = (instr: Instruction) => { this.push(this.program.constants[instr.value as number]); };
+    dt[Op.PUSH_VAR] = (instr: Instruction) => { this.push(this.env.get(instr.value as string, instr.line)); };
+    dt[Op.STORE_VAR] = (instr: Instruction) => { this.env.define(instr.value as string, this.pop()); };
+    dt[Op.STORE_CONST] = () => {};
+    dt[Op.POP] = () => { this.pop(); };
+    dt[Op.DUP] = () => { this.push(this.peek()); };
+    dt[Op.SWAP] = () => { const a = this.pop(); const b = this.pop(); this.push(a); this.push(b); };
+    dt[Op.ADD] = () => {
+      const b = this.pop(); const a = this.pop();
+      if (a.kind === "number" && b.kind === "number") this.push(NUM(a.value + b.value));
+      else this.push(STR(viperToString(a) + viperToString(b)));
+    };
+    dt[Op.SUB] = () => { const b = this.pop(); const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) - (b.kind === "number" ? b.value : 0))); };
+    dt[Op.MUL] = () => { const b = this.pop(); const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) * (b.kind === "number" ? b.value : 0))); };
+    dt[Op.DIV] = () => { const b = this.pop(); const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) / (b.kind === "number" ? b.value : 1))); };
+    dt[Op.MOD] = () => { const b = this.pop(); const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) % (b.kind === "number" ? b.value : 1))); };
+    dt[Op.POW] = () => { const b = this.pop(); const a = this.pop(); this.push(NUM(Math.pow(a.kind === "number" ? a.value : 0, b.kind === "number" ? b.value : 1))); };
+    dt[Op.NEG] = () => { const a = this.pop(); this.push(NUM(-(a.kind === "number" ? a.value : 0))); };
+    dt[Op.INC] = () => { const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) + 1)); };
+    dt[Op.DEC] = () => { const a = this.pop(); this.push(NUM((a.kind === "number" ? a.value : 0) - 1)); };
+    dt[Op.EQ] = () => {
+      const b = this.pop(); const a = this.pop();
+      if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value === b.value));
+      else if (a.kind === "bool" && b.kind === "bool") this.push(BOOL(a.value === b.value));
+      else if (a.kind === "null" && b.kind === "null") this.push(BOOL(true));
+      else this.push(BOOL(viperToString(a) === viperToString(b)));
+    };
+    dt[Op.NE] = () => {
+      const b = this.pop(); const a = this.pop();
+      if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value !== b.value));
+      else if (a.kind === "bool" && b.kind === "bool") this.push(BOOL(a.value !== b.value));
+      else if (a.kind === "null" && b.kind === "null") this.push(BOOL(false));
+      else this.push(BOOL(viperToString(a) !== viperToString(b)));
+    };
+    dt[Op.LT] = () => { const b = this.pop(); const a = this.pop(); if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value < b.value)); else this.push(BOOL(viperToString(a) < viperToString(b))); };
+    dt[Op.GT] = () => { const b = this.pop(); const a = this.pop(); if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value > b.value)); else this.push(BOOL(viperToString(a) > viperToString(b))); };
+    dt[Op.LE] = () => { const b = this.pop(); const a = this.pop(); if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value <= b.value)); else this.push(BOOL(viperToString(a) <= viperToString(b))); };
+    dt[Op.GE] = () => { const b = this.pop(); const a = this.pop(); if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value >= b.value)); else this.push(BOOL(viperToString(a) >= viperToString(b))); };
+    dt[Op.AND] = () => { const b = this.pop(); const a = this.pop(); this.push(isTruthy(a) ? b : a); };
+    dt[Op.OR] = () => { const b = this.pop(); const a = this.pop(); this.push(isTruthy(a) ? a : b); };
+    dt[Op.NOT] = () => { const a = this.pop(); this.push(BOOL(!isTruthy(a))); };
+    dt[Op.JUMP] = (instr) => { this.ip = (instr.value as number) - 1; };
+    dt[Op.JUMP_IF_FALSE] = (instr) => { if (!isTruthy(this.pop())) this.ip = (instr.value as number) - 1; };
+    dt[Op.JUMP_IF_TRUE] = (instr) => { if (isTruthy(this.pop())) this.ip = (instr.value as number) - 1; };
+    dt[Op.CALL] = (instr) => {
+      const argCount = instr.value as number;
+      const args: ViperValue[] = []; for (let i = 0; i < argCount; i++) args.unshift(this.pop());
+      const fn = this.pop();
+      if (fn.kind === "native") { this.push(fn.call(args, undefined)); }
+      else if (fn.kind === "function") {
+        const compiled = this.program.functions.get(fn.name);
+        if (compiled && compiled.bytecode.length > 0) {
+          this.callStack.push({ ip: this.ip, env: this.env, bytecode: this.currentBytecode, locals: [] });
+          const fnEnv = fn.closure.child();
+          for (let i = 0; i < fn.params.length; i++) fnEnv.define(fn.params[i], args[i] ?? NULL);
+          this.env = fnEnv; this.currentBytecode = compiled.bytecode; this.ip = -1;
+        } else {
+          try { this.push(this.callValue(fn, args)); } catch (e) { if (e instanceof ReturnSignal) this.push(e.value); else throw e; }
+        }
+      } else { throw new ViperError(`'${viperToString(fn)}' is not callable`, instr.line); }
+    };
+    dt[Op.RETURN] = () => {
+      const returnVal = this.pop();
+      if (this.callStack.length > 0) {
+        const frame = this.callStack.pop()!; this.ip = frame.ip; this.env = frame.env; this.currentBytecode = frame.bytecode;
+      }
+      this.push(returnVal);
+    };
+    dt[Op.MAKE_FN] = (instr) => {
+      const compiled = this.program.functions.get(instr.value as string);
+      if (!compiled) throw new ViperError(`Function ${instr.value} not found`, instr.line);
+      this.push({ kind: "function", name: compiled.name, params: compiled.params, body: { type: "Block", body: [] }, closure: this.env });
+    };
+    dt[Op.MAKE_CLASS] = (instr) => {
+      const compiled = this.program.classes.get(instr.value as string);
+      if (!compiled) throw new ViperError(`Class ${instr.value} not found`, instr.line);
+      const methods = new Map<string, ViperFunction>();
+      compiled.methods.forEach((cfn, methodName) => {
+        const qualifiedName = `${instr.value as string}.${methodName}`;
+        this.program.functions.set(qualifiedName, { ...cfn, name: qualifiedName });
+        methods.set(methodName, {
+          kind: "function",
+          name: qualifiedName,
+          params: cfn.params,
+          body: { type: "Block", body: [] } as any,
+          closure: this.env,
+        });
+      });
+      let superClass: ViperClass | undefined;
+      if (compiled.superName) {
+        try {
+          const superVal = this.env.get(compiled.superName);
+          if (superVal?.kind === "class") superClass = superVal;
+        } catch { /* super class not yet defined */ }
+      }
+      this.push({ kind: "class", name: instr.value as string, methods, superClass });
+    };
+    dt[Op.NEW] = (instr) => {
+      const argCount = instr.value as number;
+      const args: ViperValue[] = []; for (let i = 0; i < argCount; i++) args.unshift(this.pop());
+      const cls = this.pop();
+      if (cls.kind !== "class") throw new ViperError(`'${viperToString(cls)}' is not a class`, instr.line);
+      const instance: ViperInstance = { kind: "instance", cls, fields: new Map() };
+      const initFn = this.lookupMethod(cls, "init");
+      if (initFn && initFn.kind === "function") {
+        const compiled = this.program.functions.get(initFn.name);
+        if (compiled && compiled.bytecode.length > 0) {
+          // Run init synchronously via runUntilReturn so we push instance AFTER it completes
+          this.callStack.push({ ip: this.ip, env: this.env, bytecode: this.currentBytecode, locals: [] });
+          const initEnv = initFn.closure.child();
+          for (let i = 0; i < initFn.params.length; i++) initEnv.define(initFn.params[i], args[i] ?? NULL);
+          initEnv.define("self", instance);
+          this.env = initEnv;
+          this.currentBytecode = compiled.bytecode;
+          this.ip = 0;
+          this.runUntilReturn(); // restores frame, discards init's return value
+        } else {
+          const initEnv = initFn.closure.child();
+          for (let i = 0; i < initFn.params.length; i++) initEnv.define(initFn.params[i], args[i] ?? NULL);
+          initEnv.define("self", instance);
+          try { this.callValue(initFn, args); } catch (e) { if (e instanceof ReturnSignal) {/* ignore */} }
+        }
+      }
+      this.push(instance);
+    };
+    dt[Op.GET_MEMBER] = (instr) => { this.push(this.getMember(this.pop(), instr.value as string)); };
+    dt[Op.SET_MEMBER] = (instr) => { const val = this.pop(); const obj = this.pop(); const prop = instr.value as string; if (obj.kind === "object") obj.props.set(prop, val); else if (obj.kind === "instance") obj.fields.set(prop, val); else throw new ViperError(`Cannot set property '${prop}' on ${obj.kind}`, instr.line); this.push(val); };
+    dt[Op.GET_INDEX] = () => { const idx = this.pop(); const obj = this.pop(); this.push(this.getIndex(obj, idx)); };
+    dt[Op.SET_INDEX] = () => { const val = this.pop(); const idx = this.pop(); const obj = this.pop(); if (obj.kind === "array" && idx.kind === "number") obj.items[idx.value] = val; else if (obj.kind === "object") obj.props.set(viperToString(idx), val); this.push(val); };
+    dt[Op.MAKE_ARRAY] = (instr) => { const count = instr.value as number; const items: ViperValue[] = []; for (let i = 0; i < count; i++) items.unshift(this.pop()); this.push(ARR(items)); };
+    dt[Op.MAKE_OBJECT] = (instr) => { const keys = (instr.value as string).split("\x00"); const props = new Map<string, ViperValue>(); const vals: ViperValue[] = []; for (let i = 0; i < keys.length; i++) vals.unshift(this.pop()); for (let i = 0; i < keys.length; i++) props.set(keys[i], vals[i]); this.push(OBJ(props)); };
+    dt[Op.SPREAD] = () => { const arr = this.pop(); if (arr.kind === "array") for (const item of arr.items) this.push(item); };
+    dt[Op.PUSH_SELF] = (instr) => { this.push(this.env.get("self", instr.line)); };
+    dt[Op.GET_THIS] = (instr) => { this.push(this.env.get("self", instr.line)); };
+    dt[Op.TRY_START] = (instr) => {
+      const encoded = instr.value as string;
+      const sepIdx = encoded.lastIndexOf("|");
+      const varName = encoded.slice(0, sepIdx);
+      const catchIp = parseInt(encoded.slice(sepIdx + 1), 10);
+      this.errorHandlers.push({ ip: catchIp, varName, env: this.env });
+    };
+    dt[Op.TRY_END] = () => { this.errorHandlers.pop(); };
+    dt[Op.CATCH] = (instr) => {
+      // The error value was defined in env by the THROW handler before jumping here
+      // Nothing extra needed; variable binding is already done
+    };
+    dt[Op.THROW] = (instr) => {
+      const errVal = this.pop();
+      if (this.errorHandlers.length > 0) {
+        const handler = this.errorHandlers.pop()!;
+        // Unwind any try blocks that were entered after this handler
+        while (this.errorHandlers.length > 0 && this.errorHandlers[this.errorHandlers.length - 1].ip > handler.ip) {
+          this.errorHandlers.pop();
+        }
+        const catchEnv = handler.env.child();
+        catchEnv.define(handler.varName, errVal);
+        this.env = catchEnv;
+        this.ip = handler.ip - 1; // -1 because main loop does ip++ after each instruction
+      } else {
+        throw new ViperError(viperToString(errVal), instr.line);
+      }
+    };
+    dt[Op.LOOP_START] = () => { this.loopDepth++; };
+    dt[Op.LOOP_END] = () => { this.loopDepth--; };
+    dt[Op.BREAK] = () => { if (this.breakTargets.length > 0) this.ip = this.breakTargets[this.breakTargets.length - 1] - 1; };
+    dt[Op.CONTINUE] = () => { if (this.continueTargets.length > 0) this.ip = this.continueTargets[this.continueTargets.length - 1] - 1; };
+    dt[Op.END] = () => { this.ip = this.currentBytecode.length; };
+    this.dispatchTable = dt;
+  }
+
   run(): { success: boolean; error?: string; result?: ViperValue } {
+    this.initDispatchTable();
     try {
       this.ip = 0;
       this.frameCount = 0;
-      while (this.ip < this.currentBytecode.length) {
+      const bc = this.currentBytecode;
+      const dt = this.dispatchTable;
+      const limit = this.frameLimit;
+      const trusted = this.isTrusted;
+      while (this.ip < bc.length) {
         this.frameCount++;
-        if (!this.isTrusted && (this.frameCount & 511) === 0 && this.frameCount > this.frameLimit) {
+        if (!trusted && (this.frameCount & 1023) === 0 && this.frameCount > limit) {
           throw new ViperError("Maximum execution depth exceeded (infinite loop?)");
         }
-        const instr = this.currentBytecode[this.ip];
-        this.executeInstr(instr);
+        const instr = this.currentBytecode[this.ip]; // use this.currentBytecode (may change mid-run)
+        const handler = dt[instr.op];
+        try {
+          if (handler) handler(instr);
+          else throw new Error(`Unknown opcode: ${instr.op}`);
+        } catch (e) {
+          if (e instanceof ViperError && this.errorHandlers.length > 0) {
+            const errHandler = this.errorHandlers.pop()!;
+            const catchEnv = errHandler.env.child();
+            catchEnv.define(errHandler.varName, STR(e.message));
+            this.env = catchEnv;
+            this.ip = errHandler.ip - 1; // -1 because ip++ happens after this block
+          } else {
+            throw e;
+          }
+        }
         this.ip++;
       }
       const result = this.stack.length > 0 ? this.stack[this.stack.length - 1] : NULL;
       return { success: true, result };
     } catch (e) {
-      if (e instanceof ViperError) {
-        return { success: false, error: e.message };
-      }
+      if (e instanceof ViperError) return { success: false, error: e.message };
       return { success: false, error: String(e) };
     }
   }
 
   private executeInstr(instr: Instruction): void {
-    const op = instr.op;
-    const value = instr.value;
-    const line = instr.line;
-
-    switch (op) {
-      case Op.PUSH_CONST: {
-        this.push(this.program.constants[value as number]);
-        break;
-      }
-      case Op.PUSH_VAR: {
-        const name = value as string;
-        this.push(this.env.get(name, line));
-        break;
-      }
-      case Op.STORE_VAR: {
-        const name = value as string;
-        this.env.define(name, this.pop());
-        break;
-      }
-      case Op.STORE_CONST: {
-        const name = value as string;
-        // Const is already stored, just mark it
-        break;
-      }
-      case Op.POP: {
-        this.pop();
-        break;
-      }
-      case Op.DUP: {
-        this.push(this.peek());
-        break;
-      }
-      case Op.SWAP: {
-        const a = this.pop();
-        const b = this.pop();
-        this.push(a);
-        this.push(b);
-        break;
-      }
-
-      case Op.ADD: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") {
-          this.push(NUM(a.value + b.value));
-        } else {
-          this.push(STR(viperToString(a) + viperToString(b)));
-        }
-        break;
-      }
-      case Op.SUB: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) - (b.kind === "number" ? b.value : 0)));
-        break;
-      }
-      case Op.MUL: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) * (b.kind === "number" ? b.value : 0)));
-        break;
-      }
-      case Op.DIV: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) / (b.kind === "number" ? b.value : 1)));
-        break;
-      }
-      case Op.MOD: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) % (b.kind === "number" ? b.value : 1)));
-        break;
-      }
-      case Op.POW: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(NUM(Math.pow(a.kind === "number" ? a.value : 0, b.kind === "number" ? b.value : 1)));
-        break;
-      }
-      case Op.NEG: {
-        const a = this.pop();
-        this.push(NUM(-(a.kind === "number" ? a.value : 0)));
-        break;
-      }
-      case Op.INC: {
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) + 1));
-        break;
-      }
-      case Op.DEC: {
-        const a = this.pop();
-        this.push(NUM((a.kind === "number" ? a.value : 0) - 1));
-        break;
-      }
-
-      case Op.EQ: {
-        const b = this.pop();
-        const a = this.pop();
-        // Fast path: compare numbers directly, fallback to string comparison
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value === b.value));
-        else if (a.kind === "bool" && b.kind === "bool") this.push(BOOL(a.value === b.value));
-        else if (a.kind === "null" && b.kind === "null") this.push(BOOL(true));
-        else this.push(BOOL(viperToString(a) === viperToString(b)));
-        break;
-      }
-      case Op.NE: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value !== b.value));
-        else if (a.kind === "bool" && b.kind === "bool") this.push(BOOL(a.value !== b.value));
-        else if (a.kind === "null" && b.kind === "null") this.push(BOOL(false));
-        else this.push(BOOL(viperToString(a) !== viperToString(b)));
-        break;
-      }
-      case Op.LT: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value < b.value));
-        else this.push(BOOL(viperToString(a) < viperToString(b)));
-        break;
-      }
-      case Op.GT: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value > b.value));
-        else this.push(BOOL(viperToString(a) > viperToString(b)));
-        break;
-      }
-      case Op.LE: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value <= b.value));
-        else this.push(BOOL(viperToString(a) <= viperToString(b)));
-        break;
-      }
-      case Op.GE: {
-        const b = this.pop();
-        const a = this.pop();
-        if (a.kind === "number" && b.kind === "number") this.push(BOOL(a.value >= b.value));
-        else this.push(BOOL(viperToString(a) >= viperToString(b)));
-        break;
-      }
-
-      case Op.AND: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(BOOL(isTruthy(a) && isTruthy(b)));
-        break;
-      }
-      case Op.OR: {
-        const b = this.pop();
-        const a = this.pop();
-        this.push(BOOL(isTruthy(a) || isTruthy(b)));
-        break;
-      }
-      case Op.NOT: {
-        const a = this.pop();
-        this.push(BOOL(!isTruthy(a)));
-        break;
-      }
-
-      case Op.JUMP: {
-        this.ip = (value as number) - 1;
-        break;
-      }
-      case Op.JUMP_IF_FALSE: {
-        const cond = this.pop();
-        if (!isTruthy(cond)) {
-          this.ip = (value as number) - 1;
-        }
-        break;
-      }
-      case Op.JUMP_IF_TRUE: {
-        const cond = this.pop();
-        if (isTruthy(cond)) {
-          this.ip = (value as number) - 1;
-        }
-        break;
-      }
-
-      case Op.CALL: {
-        const argCount = value as number;
-        const args: ViperValue[] = [];
-        for (let i = 0; i < argCount; i++) args.unshift(this.pop());
-        const fn = this.pop();
-        if (fn.kind === "native") {
-          this.push(fn.call(args, undefined));
-        } else if (fn.kind === "function") {
-          // Find the compiled bytecode for this function
-          const compiled = this.program.functions.get(fn.name);
-          if (compiled && compiled.bytecode.length > 0) {
-            this.callStack.push({ ip: this.ip, env: this.env, bytecode: this.currentBytecode, locals: [] });
-            const fnEnv = fn.closure.child();
-            for (let i = 0; i < fn.params.length; i++) fnEnv.define(fn.params[i], args[i] ?? NULL);
-            this.env = fnEnv;
-            this.currentBytecode = compiled.bytecode;
-            this.ip = -1;
-          } else {
-            // No compiled bytecode - fallback to interpreter
-            try {
-              const result = this.callValue(fn, args);
-              this.push(result);
-            } catch (e) {
-              if (e instanceof ReturnSignal) this.push(e.value);
-              else throw e;
-            }
-          }
-        } else {
-          throw new ViperError(`'${viperToString(fn)}' is not callable`, line);
-        }
-        break;
-      }
-      case Op.RETURN: {
-        const returnVal = this.pop();
-        if (this.callStack.length > 0) {
-          const frame = this.callStack.pop()!;
-          this.ip = frame.ip;
-          this.env = frame.env;
-          this.currentBytecode = frame.bytecode;
-        }
-        this.push(returnVal);
-        break;
-      }
-
-      case Op.MAKE_FN: {
-        const name = value as string;
-        const compiled = this.program.functions.get(name);
-        if (!compiled) throw new ViperError(`Function ${name} not found`, line);
-        const fn: ViperFunction = {
-          kind: "function", name: compiled.name,
-          params: compiled.params, body: { type: "Block", body: [] },
-          closure: this.env,
-        };
-        this.push(fn);
-        break;
-      }
-      case Op.MAKE_CLASS: {
-        const name = value as string;
-        const compiled = this.program.classes.get(name);
-        if (!compiled) throw new ViperError(`Class ${name} not found`, line);
-        const methods = new Map<string, ViperFunction | ViperNative>();
-        const cls: ViperClass = { kind: "class", name, methods, superClass: undefined };
-        this.push(cls);
-        break;
-      }
-      case Op.NEW: {
-        const argCount = value as number;
-        const args: ViperValue[] = [];
-        for (let i = 0; i < argCount; i++) args.unshift(this.pop());
-        const cls = this.pop();
-        if (cls.kind !== "class") throw new ViperError(`'${viperToString(cls)}' is not a class`, line);
-        const instance: ViperInstance = { kind: "instance", cls, fields: new Map() };
-        const initFn = this.lookupMethod(cls, "init");
-        if (initFn && initFn.kind === "function") {
-          const compiled = this.program.functions.get(initFn.name);
-          if (compiled && compiled.bytecode.length > 0) {
-            this.callStack.push({ ip: this.ip, env: this.env, bytecode: this.currentBytecode, locals: [] });
-            const initEnv = initFn.closure.child();
-            for (let i = 0; i < initFn.params.length; i++) initEnv.define(initFn.params[i], args[i] ?? NULL);
-            initEnv.define("self", instance);
-            this.env = initEnv;
-            this.currentBytecode = compiled.bytecode;
-            this.ip = -1;
-          } else {
-            const initEnv = initFn.closure.child();
-            for (let i = 0; i < initFn.params.length; i++) initEnv.define(initFn.params[i], args[i] ?? NULL);
-            initEnv.define("self", instance);
-            try { this.callValue(initFn, args); } catch (e) { if (e instanceof ReturnSignal) {/* ignore */} }
-          }
-        }
-        this.push(instance);
-        break;
-      }
-
-      case Op.GET_MEMBER: {
-        const prop = value as string;
-        const obj = this.pop();
-        this.push(this.getMember(obj, prop));
-        break;
-      }
-      case Op.SET_MEMBER: {
-        const prop = value as string;
-        const val = this.pop();
-        const obj = this.pop();
-        if (obj.kind === "object") obj.props.set(prop, val);
-        else if (obj.kind === "instance") obj.fields.set(prop, val);
-        else throw new ViperError(`Cannot set property '${prop}' on ${obj.kind}`, line);
-        this.push(val);
-        break;
-      }
-      case Op.GET_INDEX: {
-        const idx = this.pop();
-        const obj = this.pop();
-        this.push(this.getIndex(obj, idx));
-        break;
-      }
-      case Op.SET_INDEX: {
-        const val = this.pop();
-        const idx = this.pop();
-        const obj = this.pop();
-        if (obj.kind === "array" && idx.kind === "number") {
-          obj.items[idx.value] = val;
-        } else if (obj.kind === "object") {
-          obj.props.set(viperToString(idx), val);
-        }
-        this.push(val);
-        break;
-      }
-
-      case Op.MAKE_ARRAY: {
-        const count = value as number;
-        const items: ViperValue[] = [];
-        for (let i = 0; i < count; i++) items.unshift(this.pop());
-        this.push(ARR(items));
-        break;
-      }
-      case Op.MAKE_OBJECT: {
-        const keysStr = value as string;
-        const keys = keysStr.split("\x00");
-        const props = new Map<string, ViperValue>();
-        const vals: ViperValue[] = [];
-        for (let i = 0; i < keys.length; i++) vals.unshift(this.pop());
-        for (let i = 0; i < keys.length; i++) props.set(keys[i], vals[i]);
-        this.push(OBJ(props));
-        break;
-      }
-      case Op.SPREAD: {
-        const arr = this.pop();
-        if (arr.kind === "array") {
-          for (const item of arr.items) this.push(item);
-        }
-        break;
-      }
-      case Op.PUSH_SELF: {
-        const self = this.env.get("self", line);
-        this.push(self);
-        break;
-      }
-      case Op.GET_THIS: {
-        const self = this.env.get("self", line);
-        this.push(self);
-        break;
-      }
-
-      case Op.TRY_START: {
-        this.errorHandlers.push({ ip: (value as number), varName: value as string, env: this.env });
-        break;
-      }
-      case Op.TRY_END: {
-        this.errorHandlers.pop();
-        break;
-      }
-      case Op.CATCH: {
-        // Handled by error handler
-        break;
-      }
-      case Op.THROW: {
-        const err = this.pop();
-        throw new ViperError(viperToString(err), line);
-      }
-
-      case Op.LOOP_START: {
-        this.loopDepth++;
-        break;
-      }
-      case Op.LOOP_END: {
-        this.loopDepth--;
-        break;
-      }
-      case Op.BREAK: {
-        if (this.breakTargets.length > 0) {
-          this.ip = this.breakTargets[this.breakTargets.length - 1] - 1;
-        }
-        break;
-      }
-      case Op.CONTINUE: {
-        if (this.continueTargets.length > 0) {
-          this.ip = this.continueTargets[this.continueTargets.length - 1] - 1;
-        }
-        break;
-      }
-
-      case Op.END: {
-        this.ip = this.currentBytecode.length;
-        break;
-      }
-
-      default:
-        throw new Error(`Unknown opcode: ${op}`);
-    }
+    const handler = this.dispatchTable[instr.op];
+    if (handler) handler(instr);
+    else throw new Error(`Unknown opcode: ${instr.op}`);
   }
 
   private getMember(obj: ViperValue, prop: string): ViperValue {
@@ -660,20 +466,11 @@ export class VM {
       fnEnv.define("self", instance);
       this.env = fnEnv;
       this.currentBytecode = compiled.bytecode;
-      this.ip = -1;
+      this.ip = 0;
       // Run method bytecode until RETURN
       return this.runUntilReturn();
     }
-    // Fallback: tree-walker style
-    const fnEnv = fn.closure.child();
-    for (let i = 0; i < fn.params.length; i++) fnEnv.define(fn.params[i], args[i] ?? NULL);
-    fnEnv.define("self", instance);
-    try {
-      return NULL;
-    } catch (e) {
-      if (e instanceof ReturnSignal) return e.value;
-      throw e;
-    }
+    throw new ViperError(`Method '${fn.name}' has no compiled bytecode`);
   }
 
   private callValue(fn: ViperValue, args: ViperValue[], self?: ViperValue): ViperValue {
@@ -689,20 +486,11 @@ export class VM {
         if (self !== undefined) fnEnv.define("self", self);
         this.env = fnEnv;
         this.currentBytecode = compiled.bytecode;
-        this.ip = -1;
+        this.ip = 0;
         // Run function bytecode until RETURN
         return this.runUntilReturn();
       }
-      // Fallback
-      const fnEnv = fn.closure.child();
-      for (let i = 0; i < fn.params.length; i++) fnEnv.define(fn.params[i], args[i] ?? NULL);
-      if (self !== undefined) fnEnv.define("self", self);
-      try {
-        return NULL;
-      } catch (e) {
-        if (e instanceof ReturnSignal) return e.value;
-        throw e;
-      }
+      throw new ViperError(`Function '${fn.name}' has no compiled bytecode`);
     }
     throw new ViperError(`'${viperToString(fn)}' is not callable`);
   }
@@ -726,7 +514,19 @@ export class VM {
         }
         return returnVal;
       }
-      this.executeInstr(instr);
+      try {
+        this.executeInstr(instr);
+      } catch (e) {
+        if (e instanceof ViperError && this.errorHandlers.length > 0) {
+          const errHandler = this.errorHandlers.pop()!;
+          const catchEnv = errHandler.env.child();
+          catchEnv.define(errHandler.varName, STR(e.message));
+          this.env = catchEnv;
+          this.ip = errHandler.ip; // runUntilReturn doesn't pre-decrement; next ip++ handles it
+          continue;
+        }
+        throw e;
+      }
       this.ip++;
     }
     // No explicit return - return null

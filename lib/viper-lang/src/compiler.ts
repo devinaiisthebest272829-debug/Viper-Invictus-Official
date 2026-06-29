@@ -98,8 +98,8 @@ export class Compiler {
   private locals: string[] = [];
   private localDepth = 0;
   private currentBytecode: Instruction[] = [];
-  private breakStack: number[] = [];
-  private continueStack: number[] = [];
+  private breakStack: number[][] = [];   // each entry is a list of JUMP-placeholder indices for break
+  private continueStack: number[][] = []; // each entry is a list of JUMP-placeholder indices for continue
   private loopDepth = 0;
 
   compile(node: AstNode): BytecodeProgram {
@@ -259,12 +259,15 @@ export class Compiler {
         this.emit(Op.JUMP_IF_FALSE, 0, line);
         this.emit(Op.LOOP_START, undefined, line);
         this.loopDepth++;
-        this.breakStack.push(0);
-        this.continueStack.push(loopStart);
+        this.breakStack.push([]);
+        this.continueStack.push([]);
         this.emitNode(node.body as AstNode);
         this.emit(Op.LOOP_END, undefined, line);
         this.emit(Op.JUMP, loopStart, line);
-        this.currentBytecode[jumpFalseIdx].value = this.currentBytecode.length;
+        const loopEnd = this.currentBytecode.length;
+        this.currentBytecode[jumpFalseIdx].value = loopEnd;
+        for (const idx of this.breakStack[this.breakStack.length - 1]) this.currentBytecode[idx].value = loopEnd;
+        for (const idx of this.continueStack[this.continueStack.length - 1]) this.currentBytecode[idx].value = loopStart;
         this.loopDepth--;
         this.breakStack.pop();
         this.continueStack.pop();
@@ -275,12 +278,16 @@ export class Compiler {
         const loopStart = this.currentBytecode.length;
         this.emit(Op.LOOP_START, undefined, line);
         this.loopDepth++;
-        this.breakStack.push(0);
-        this.continueStack.push(loopStart);
+        this.breakStack.push([]);
+        this.continueStack.push([]);
         this.emitNode(node.body as AstNode);
         this.emit(Op.LOOP_END, undefined, line);
+        const condStart = this.currentBytecode.length;
         this.emitNode(node.cond as AstNode);
         this.emit(Op.JUMP_IF_TRUE, loopStart, line);
+        const loopEnd = this.currentBytecode.length;
+        for (const idx of this.breakStack[this.breakStack.length - 1]) this.currentBytecode[idx].value = loopEnd;
+        for (const idx of this.continueStack[this.continueStack.length - 1]) this.currentBytecode[idx].value = condStart;
         this.loopDepth--;
         this.breakStack.pop();
         this.continueStack.pop();
@@ -296,13 +303,17 @@ export class Compiler {
         this.emit(Op.JUMP_IF_FALSE, 0, line);
         this.emit(Op.LOOP_START, undefined, line);
         this.loopDepth++;
-        this.breakStack.push(0);
-        this.continueStack.push(loopStart);
+        this.breakStack.push([]);
+        this.continueStack.push([]);
         this.emitNode(node.body as AstNode);
+        const updateStart = this.currentBytecode.length;
+        for (const idx of this.continueStack[this.continueStack.length - 1]) this.currentBytecode[idx].value = updateStart;
         this.emitNode(node.update as AstNode);
         this.emit(Op.LOOP_END, undefined, line);
         this.emit(Op.JUMP, loopStart, line);
-        this.currentBytecode[jumpFalseIdx].value = this.currentBytecode.length;
+        const loopEnd = this.currentBytecode.length;
+        this.currentBytecode[jumpFalseIdx].value = loopEnd;
+        for (const idx of this.breakStack[this.breakStack.length - 1]) this.currentBytecode[idx].value = loopEnd;
         this.loopDepth--;
         this.breakStack.pop();
         this.continueStack.pop();
@@ -325,20 +336,24 @@ export class Compiler {
         this.emit(Op.JUMP_IF_FALSE, 0, line);
         this.emit(Op.LOOP_START, undefined, line);
         this.loopDepth++;
-        this.breakStack.push(0);
-        this.continueStack.push(loopStart);
+        this.breakStack.push([]);
+        this.continueStack.push([]);
         this.emit(Op.PUSH_VAR, arrVar, line);
         this.emit(Op.PUSH_VAR, idxVar, line);
         this.emit(Op.GET_INDEX, undefined, line);
         this.emit(Op.STORE_VAR, node.name as string, line);
         this.emitNode(node.body as AstNode);
         this.emit(Op.LOOP_END, undefined, line);
+        const incrStart = this.currentBytecode.length;
+        for (const idx of this.continueStack[this.continueStack.length - 1]) this.currentBytecode[idx].value = incrStart;
         this.emit(Op.PUSH_VAR, idxVar, line);
         this.emit(Op.PUSH_CONST, this.addConst(NUM(1)), line);
         this.emit(Op.ADD, undefined, line);
         this.emit(Op.STORE_VAR, idxVar, line);
         this.emit(Op.JUMP, loopStart, line);
-        this.currentBytecode[jumpFalseIdx].value = this.currentBytecode.length;
+        const loopEnd = this.currentBytecode.length;
+        this.currentBytecode[jumpFalseIdx].value = loopEnd;
+        for (const idx of this.breakStack[this.breakStack.length - 1]) this.currentBytecode[idx].value = loopEnd;
         this.loopDepth--;
         this.breakStack.pop();
         this.continueStack.pop();
@@ -347,13 +362,17 @@ export class Compiler {
 
       case "Break": {
         if (this.loopDepth === 0) throw new Error("Break outside loop");
-        this.emit(Op.BREAK, undefined, line);
+        const breakIdx = this.currentBytecode.length;
+        this.emit(Op.JUMP, 0, line); // placeholder, patched after loop
+        this.breakStack[this.breakStack.length - 1].push(breakIdx);
         break;
       }
 
       case "Continue": {
         if (this.loopDepth === 0) throw new Error("Continue outside loop");
-        this.emit(Op.CONTINUE, undefined, line);
+        const contIdx = this.currentBytecode.length;
+        this.emit(Op.JUMP, 0, line); // placeholder, patched after loop
+        this.continueStack[this.continueStack.length - 1].push(contIdx);
         break;
       }
 
@@ -365,14 +384,17 @@ export class Compiler {
       }
 
       case "Try": {
-        const tryStart = this.currentBytecode.length;
-        this.emit(Op.TRY_START, node.catchVar as string || "err", line);
+        const varName = (node.catchVar as string) || "err";
+        const tryStartIdx = this.currentBytecode.length;
+        this.emit(Op.TRY_START, `${varName}|0`, line); // value patched below once catchStart is known
         this.emitNode(node.body as AstNode);
         this.emit(Op.TRY_END, undefined, line);
         const jumpEndIdx = this.currentBytecode.length;
         this.emit(Op.JUMP, 0, line);
         const catchStart = this.currentBytecode.length;
-        this.emit(Op.CATCH, node.catchVar as string || "err", line);
+        // Patch TRY_START with the actual catch block address
+        this.currentBytecode[tryStartIdx].value = `${varName}|${catchStart}`;
+        this.emit(Op.CATCH, varName, line);
         this.emitNode(node.catchBody as AstNode);
         this.currentBytecode[jumpEndIdx].value = this.currentBytecode.length;
         break;
