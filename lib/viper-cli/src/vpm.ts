@@ -69,7 +69,7 @@ export interface ViperManifest {
 export const STDLIB: Record<string, PackageMeta> = {
   "std": {
     name: "std",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "Viper standard library — strings, arrays, objects, math utilities",
     author: "Viper Team",
     license: "MIT",
@@ -78,7 +78,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "net": {
     name: "net",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "HTTP client, WebSocket, DNS lookup, URL parsing",
     author: "Viper Team",
     license: "MIT",
@@ -87,7 +87,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "io": {
     name: "io",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "File I/O, streams, stdin/stdout, directory operations",
     author: "Viper Team",
     license: "MIT",
@@ -96,7 +96,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "crypto": {
     name: "crypto",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "SHA-256, MD5, Base64, AES-256, random bytes, UUID generation",
     author: "Viper Team",
     license: "MIT",
@@ -105,7 +105,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "json": {
     name: "json",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "JSON parse, stringify, schema validation, JSON-pointer, diff",
     author: "Viper Team",
     license: "MIT",
@@ -114,7 +114,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "math-ext": {
     name: "math-ext",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "Extended math: FFT, matrix ops, complex numbers, statistics, linear algebra",
     author: "Viper Team",
     license: "MIT",
@@ -123,7 +123,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "async": {
     name: "async",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "Promise-style async, channels, coroutines, event emitter",
     author: "Viper Team",
     license: "MIT",
@@ -141,7 +141,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "test": {
     name: "test",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "Built-in unit testing: describe/it/expect/assert, coverage, mocking",
     author: "Viper Team",
     license: "MIT",
@@ -150,7 +150,7 @@ export const STDLIB: Record<string, PackageMeta> = {
   },
   "canvas": {
     name: "canvas",
-    version: "2.0.0",
+    version: "1.4.0",
     description: "2D/3D graphics, WebGL bindings, sprite system, particle engine",
     author: "Viper Team",
     license: "MIT",
@@ -430,7 +430,7 @@ function saveManifest(manifest: ViperManifest): void {
 
 async function fetchRegistry(): Promise<PackageMeta[]> {
   try {
-    const r = await fetch(REGISTRY_URL, { headers: { "User-Agent": "vpm/2.0" } });
+    const r = await fetch(REGISTRY_URL, { headers: { "User-Agent": "vpm/1.4" } });
     if (r.ok) {
       const data = await r.json() as PackageMeta[];
       return data;
@@ -470,7 +470,7 @@ export async function vpmInstall(pkgNames: string[]): Promise<void> {
     if (name.startsWith("http://") || name.startsWith("https://")) {
       console.log(`${c("blue", "⟳")} Fetching ${c("cyan", name)}...`);
       try {
-        const r = await fetch(name, { headers: { "User-Agent": "vpm/2.0" } });
+        const r = await fetch(name, { headers: { "User-Agent": "vpm/1.4" } });
         if (!r.ok) { console.log(c("red", `  ✗ HTTP ${r.status}: ${r.statusText}`)); continue; }
         const code = await r.text();
         const pkgName = basename(name).replace(/\.vi$/, "");
@@ -489,7 +489,7 @@ export async function vpmInstall(pkgNames: string[]): Promise<void> {
       const url = `https://raw.githubusercontent.com/${name}/main/index.vi`;
       console.log(`${c("blue", "⟳")} Fetching ${c("cyan", name)} from GitHub...`);
       try {
-        const r = await fetch(url, { headers: { "User-Agent": "vpm/2.0" } });
+        const r = await fetch(url, { headers: { "User-Agent": "vpm/1.4" } });
         if (!r.ok) { console.log(c("red", `  ✗ Not found on GitHub: ${url}`)); continue; }
         const code = await r.text();
         const pkgName = name.split("/").pop()!;

@@ -19,7 +19,19 @@ interface Version {
 
 const CHANGELOG: Version[] = [
   {
-    version: "2.0",
+    version: "1.5",
+    date: "June 2026",
+    changes: [
+      { type: "fix", text: "Fixed compileNew using node.callee instead of node.cls — new ClassName() now works correctly in compiled mode" },
+      { type: "fix", text: "Fixed loopActive stale-state bug in IDE: canvas programs no longer show '✓ Done' immediately after run" },
+      { type: "fix", text: "Changelog 'Latest' badge now correctly tracks the current release" },
+      { type: "improvement", text: "Compiled Function cache: repeated runs skip lex/parse/compile entirely — just call the cached function for near-instant re-execution" },
+      { type: "improvement", text: "Frame check optimized: fires every 1024 nodes instead of 512, halving loop guard overhead" },
+      { type: "improvement", text: "IDE compiler synced to CLI: browser execution now gets the same aggressive optimizations" },
+    ],
+  },
+  {
+    version: "1.4",
     date: "June 2026",
     changes: [
       { type: "feature", text: "Compile cache: source is hashed on every execute() call; if the hash matches the last run, the lex/parse/compile pipeline is skipped entirely for a near-instant repeat run" },
@@ -110,7 +122,14 @@ function getTypeLabel(type: Change["type"]) {
 }
 
 function getVersionBadges(version: string) {
-  if (version === "2.0") return (
+  if (version === "1.5") return (
+    <div className="ml-auto flex items-center gap-2 flex-wrap">
+      <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+        <Bug className="w-3 h-3" /> Bug Fixes
+      </span>
+    </div>
+  );
+  if (version === "1.4") return (
     <div className="ml-auto flex items-center gap-2 flex-wrap">
       <span className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">
         <Terminal className="w-3 h-3" /> Compiler
@@ -150,7 +169,7 @@ export default function Changelog() {
 
       <div className="space-y-6">
         {CHANGELOG.map(version => (
-          <div key={version.version} className={`bg-white/5 border rounded-xl overflow-hidden ${version.version === "2.0" ? "border-[#7c6af7]/30" : "border-white/10"}`}>
+          <div key={version.version} className={`bg-white/5 border rounded-xl overflow-hidden ${version.version === "1.5" ? "border-[#7c6af7]/30" : "border-white/10"}`}>
             <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-white/[0.02] flex-wrap gap-y-2">
               <div className="w-8 h-8 rounded-lg bg-[#7c6af7]/15 flex items-center justify-center shrink-0">
                 <GitCommit className="w-4 h-4 text-[#7c6af7]" />
@@ -158,7 +177,7 @@ export default function Changelog() {
               <div>
                 <h2 className="text-sm font-semibold text-white/90 flex items-center gap-2">
                   v{version.version}
-                  {version.version === "2.0" && (
+                  {version.version === "1.5" && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#7c6af7]/20 text-[#b8b0fc] border border-[#7c6af7]/30 font-normal">Latest</span>
                   )}
                 </h2>
