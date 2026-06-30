@@ -466,8 +466,21 @@ export async function vpmInstall(pkgNames: string[]): Promise<void> {
       continue;
     }
 
+    // Validate URLs before fetching
+    function isVpmUrlSafe(url: string): boolean {
+      try {
+        const u = new URL(url);
+        if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+        return true; // Allow http(s), block file:// data: javascript: etc
+      } catch { return false; }
+    }
+
     // Try to fetch from registry or direct URL
     if (name.startsWith("http://") || name.startsWith("https://")) {
+      if (!isVpmUrlSafe(name)) {
+        console.log(c("red", `  ✗ Blocked unsafe URL: ${name}`));
+        continue;
+      }
       console.log(`${c("blue", "⟳")} Fetching ${c("cyan", name)}...`);
       try {
         const r = await fetch(name, { headers: { "User-Agent": "vpm/1.4" } });
@@ -487,6 +500,10 @@ export async function vpmInstall(pkgNames: string[]): Promise<void> {
     // Try GitHub shorthand: user/repo
     if (name.includes("/")) {
       const url = `https://raw.githubusercontent.com/${name}/main/index.vi`;
+      if (!isVpmUrlSafe(url)) {
+        console.log(c("red", `  ✗ Blocked unsafe GitHub shorthand: ${name}`));
+        continue;
+      }
       console.log(`${c("blue", "⟳")} Fetching ${c("cyan", name)} from GitHub...`);
       try {
         const r = await fetch(url, { headers: { "User-Agent": "vpm/1.4" } });

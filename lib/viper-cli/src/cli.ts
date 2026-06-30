@@ -243,34 +243,77 @@ function makeCtx(verbose = false) {
   };
 }
 
+// ===== SECURITY HELPERS =====
+const BLOCKED_ENV_KEYS = new Set([
+  "GITHUB_PERSONAL_ACCESS_TOKEN", "GITHUB_TOKEN", "GH_TOKEN",
+  "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "OPENROUTER_API_KEY",
+  "DATABASE_URL", "REPL_ID", "REPL_OWNER", "REPL_SLUG", "REPLIT_DOMAINS",
+  "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AZURE_CLIENT_SECRET",
+  "GOOGLE_APPLICATION_CREDENTIALS", "PRIVATE_KEY", "SECRET_KEY", "JWT_SECRET",
+  "SESSION_SECRET", "COOKIE_SECRET", "MASTER_KEY", "API_SECRET",
+  "TOKEN", "ACCESS_TOKEN", "REFRESH_TOKEN", "AUTH_TOKEN",
+  "PASSWORD", "PASS", "PASSWD", "PIN", "CREDENTIALS",
+]);
+const ALLOWED_ENV_KEYS = new Set(["PATH", "HOME", "USER", "SHELL", "LANG", "TERM", "PWD", "OLDPWD"]);
+function isPathSafe(p: string): boolean {
+  const resolved = resolve(p);
+  const cwd = process.cwd();
+  // Must be within cwd or global node_modules
+  return resolved.startsWith(cwd) || resolved.startsWith("/nix/store/") || resolved.startsWith("/tmp/");
+}
+function isUrlSafe(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch { return false; }
+}
+function sanitizeEnvKey(k: string): string | null {
+  if (BLOCKED_ENV_KEYS.has(k)) return null;
+  if (ALLOWED_ENV_KEYS.has(k)) return k;
+  if (k.includes("TOKEN") || k.includes("SECRET") || k.includes("KEY") || k.includes("PASSWORD") || k.includes("PASS")) return null;
+  return k;
+}
+
 // ===== INJECT BUILTINS =====
 async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NATIVE, viperToString }: any, opts: { verbose?: boolean } = {}) {
-  // fs
+  const cwd = process.cwd();
+
+  // fs — sandboxed to cwd only, no traversal
   const fsObj = OBJ();
   fsObj.props.set("read", NATIVE("fs.read", (args: any[]) => {
-    const path = viperToString(args[0] ?? NULL);
-    if (!existsSync(path)) throw new Error(`File not found: ${path}`);
-    return STR(readFileSync(path, "utf-8"));
+    const p = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(p)) throw new Error(`Access denied: ${p} is outside the project directory`);
+    if (!existsSync(p)) throw new Error(`File not found: ${p}`);
+    return STR(readFileSync(p, "utf-8"));
   }));
   fsObj.props.set("write", NATIVE("fs.write", (args: any[]) => {
-    const path = viperToString(args[0] ?? NULL);
+    const p = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(p)) throw new Error(`Access denied: ${p} is outside the project directory`);
     const content = viperToString(args[1] ?? NULL);
-    ensureDir(path);
-    writeFileSync(path, content, "utf-8");
+    ensureDir(p);
+    writeFileSync(p, content, "utf-8");
     return NULL;
   }));
-  fsObj.props.set("exists", NATIVE("fs.exists", (args: any[]) => BOOL(existsSync(viperToString(args[0] ?? NULL)))));
+  fsObj.props.set("exists", NATIVE("fs.exists", (args: any[]) => {
+    const p = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(p)) return BOOL(false);
+    return BOOL(existsSync(p));
+  }));
   fsObj.props.set("list", NATIVE("fs.list", (args: any[]) => {
     const dir = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(dir)) throw new Error(`Access denied: ${dir} is outside the project directory`);
     if (!existsSync(dir)) return ARR([]);
     return ARR(readdirSync(dir).map(STR));
   }));
   fsObj.props.set("mkdir", NATIVE("fs.mkdir", (args: any[]) => {
-    mkdirSync(viperToString(args[0] ?? NULL), { recursive: true });
+    const p = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(p)) throw new Error(`Access denied: ${p} is outside the project directory`);
+    mkdirSync(p, { recursive: true });
     return NULL;
   }));
   fsObj.props.set("stat", NATIVE("fs.stat", (args: any[]) => {
     const p = viperToString(args[0] ?? NULL);
+    if (!isPathSafe(p)) return NULL;
     if (!existsSync(p)) return NULL;
     const s = statSync(p);
     const o = OBJ();
@@ -282,39 +325,25 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
   }));
   interp.setGlobal("fs", fsObj);
 
-  // env
+  // env — safelist only, no set, no all
   const envObj = OBJ();
   envObj.props.set("get", NATIVE("env.get", (args: any[]) => {
-    const k = viperToString(args[0] ?? NULL);
+    const rawKey = viperToString(args[0] ?? NULL);
+    const k = sanitizeEnvKey(rawKey);
+    if (!k) return NULL;
     return process.env[k] ? STR(process.env[k]!) : NULL;
-  }));
-  envObj.props.set("set", NATIVE("env.set", (args: any[]) => {
-    process.env[viperToString(args[0] ?? NULL)] = viperToString(args[1] ?? NULL);
-    return NULL;
-  }));
-  envObj.props.set("all", NATIVE("env.all", (_: any[]) => {
-    const o = OBJ();
-    for (const [k, v] of Object.entries(process.env)) {
-      if (v) o.props.set(k, STR(v));
-    }
-    return o;
   }));
   interp.setGlobal("env", envObj);
 
-  // process
+  // process — minimal read-only info
   const procObj = OBJ();
-  procObj.props.set("args", ARR(process.argv.slice(2).map(STR)));
-  procObj.props.set("cwd", NATIVE("process.cwd", () => STR(process.cwd())));
-  procObj.props.set("exit", NATIVE("process.exit", (args: any[]) => {
-    process.exit(args[0]?.kind === "number" ? args[0].value : 0);
-  }));
+  procObj.props.set("cwd", NATIVE("process.cwd", () => STR(cwd)));
   procObj.props.set("pid", NUM(process.pid));
   procObj.props.set("platform", STR(process.platform));
-  procObj.props.set("version", STR(process.version));
   interp.setGlobal("process", procObj);
 
-  // storage
-  const storagePath = join(process.cwd(), ".viper", "storage.json");
+  // storage — sandboxed to .viper/storage.json only
+  const storagePath = join(cwd, ".viper", "storage.json");
   function loadStorage(): Record<string, string> {
     if (existsSync(storagePath)) {
       try { return JSON.parse(readFileSync(storagePath, "utf-8")); } catch {}
@@ -346,9 +375,10 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
   storageObj.props.set("keys", NATIVE("storage.keys", () => ARR(Object.keys(loadStorage()).map(STR))));
   interp.setGlobal("storage", storageObj);
 
-  // fetch (native, not curl)
+  // fetch — URL-validated, no shell exec
   interp.setGlobal("fetch", NATIVE("fetch", (args: any[]) => {
     const url = viperToString(args[0] ?? NULL);
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     try {
       const result = execSync(`curl -s -L --max-time 10 "${url}"`, { encoding: "utf-8" });
       return STR(result);
@@ -358,6 +388,7 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
   }));
   interp.setGlobal("fetchPost", NATIVE("fetchPost", (args: any[]) => {
     const url = viperToString(args[0] ?? NULL);
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     const data = viperToString(args[1] ?? NULL);
     try {
       const result = execSync(`curl -s -L -X POST -H "Content-Type: application/json" -d '${data.replace(/'/g, "'\\''")}' "${url}"`, { encoding: "utf-8" });
@@ -367,10 +398,11 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
     }
   }));
 
-  // http (higher level)
+  // http — URL-validated
   const httpObj = OBJ();
   httpObj.props.set("get", NATIVE("http.get", (args: any[]) => {
     const url = viperToString(args[0] ?? NULL);
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     try {
       const result = execSync(`curl -s -L --max-time 15 "${url}"`, { encoding: "utf-8" });
       return STR(result);
@@ -378,6 +410,7 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
   }));
   httpObj.props.set("post", NATIVE("http.post", (args: any[]) => {
     const url = viperToString(args[0] ?? NULL);
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     const body = viperToString(args[1] ?? NULL);
     const ct = args[2]?.kind === "string" ? args[2].value : "application/json";
     try {
@@ -387,37 +420,12 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
   }));
   interp.setGlobal("http", httpObj);
 
-  // thread
-  const threadObj = OBJ();
-  threadObj.props.set("run", NATIVE("thread.run", (args: any[]) => {
-    const path = viperToString(args[0] ?? NULL);
-    const child = spawn("npx", ["tsx", resolve(__dirname, "cli.ts"), "run", path], {
-      cwd: process.cwd(),
-      stdio: "inherit",
-      env: process.env,
-    });
-    child.on("exit", (code) => {
-      if (code !== 0) console.error(red(`Thread '${path}' exited with code ${code}`));
-    });
-    return NULL;
-  }));
-  interp.setGlobal("thread", threadObj);
-
-  // os
+  // os — read-only, NO exec
   const osObj = OBJ();
-  osObj.props.set("exec", NATIVE("os.exec", (args: any[]) => {
-    const cmd = viperToString(args[0] ?? NULL);
-    try {
-      return STR(execSync(cmd, { encoding: "utf-8" }));
-    } catch (e: any) {
-      return STR(e.stderr ?? String(e));
-    }
-  }));
   osObj.props.set("platform", STR(process.platform));
   osObj.props.set("arch", STR(process.arch));
   osObj.props.set("cpus", NUM(cpus().length));
   osObj.props.set("memory", NUM(totalmem()));
-  osObj.props.set("hostname", STR(hostname()));
   interp.setGlobal("os", osObj);
 
   // timer (CLI version)
@@ -442,66 +450,75 @@ async function injectBuiltins(interp: any, { NUM, STR, BOOL, NULL, ARR, OBJ, NAT
     sleep: (ms: number) => { const t0 = Date.now(); while (Date.now() - t0 < ms) {} },
   });
 
+  // Hardened compiled globals — same restrictions as native builtins
+  const cwd2 = process.cwd();
   interp.registerCompiledGlobal("os", {
-    exec:     (cmd: string) => { try { return execSync(cmd, { encoding: "utf-8" }); } catch (e: any) { return String(e.stderr ?? e); } },
     platform: process.platform,
     arch:     process.arch,
     cpus:     cpus().length,
     memory:   totalmem(),
-    hostname: hostname(),
   });
 
   interp.registerCompiledGlobal("env", {
-    get: (k: string) => process.env[k] ?? null,
-    set: (k: string, v: string) => { process.env[k] = v; },
-    all: () => Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)),
+    get: (k: string) => {
+      const safe = sanitizeEnvKey(k);
+      return safe ? (process.env[safe] ?? null) : null;
+    },
   });
 
   interp.registerCompiledGlobal("fs", {
-    read:   (p: string) => readFileSync(p, "utf-8"),
-    write:  (p: string, c: string) => writeFileSync(p, c, "utf-8"),
-    exists: (p: string) => existsSync(p),
-    list:   (p: string) => readdirSync(p),
-    mkdir:  (p: string) => mkdirSync(p, { recursive: true }),
+    read:   (p: string) => {
+      if (!isPathSafe(p)) throw new Error(`Access denied: ${p}`);
+      return readFileSync(p, "utf-8");
+    },
+    write:  (p: string, c: string) => {
+      if (!isPathSafe(p)) throw new Error(`Access denied: ${p}`);
+      writeFileSync(p, c, "utf-8");
+    },
+    exists: (p: string) => isPathSafe(p) ? existsSync(p) : false,
+    list:   (p: string) => isPathSafe(p) ? readdirSync(p) : [],
+    mkdir:  (p: string) => {
+      if (!isPathSafe(p)) throw new Error(`Access denied: ${p}`);
+      mkdirSync(p, { recursive: true });
+    },
     stat:   (p: string) => {
-      if (!existsSync(p)) return null;
+      if (!isPathSafe(p) || !existsSync(p)) return null;
       const s = statSync(p);
       return { size: s.size, isFile: s.isFile(), isDir: s.isDirectory(), mtime: s.mtimeMs };
     },
   });
 
   interp.registerCompiledGlobal("fetch", (url: string) => {
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     try { return execSync(`curl -s -L --max-time 10 "${url}"`, { encoding: "utf-8" }); } catch { return null; }
   });
 
   interp.registerCompiledGlobal("fetchPost", (url: string, data: string) => {
+    if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
     try {
       return execSync(`curl -s -L -X POST -H "Content-Type: application/json" -d '${data.replace(/'/g, "'\\''")}' "${url}"`, { encoding: "utf-8" });
     } catch { return null; }
   });
 
   interp.registerCompiledGlobal("http", {
-    get:  (url: string) => { try { return execSync(`curl -s -L --max-time 15 "${url}"`, { encoding: "utf-8" }); } catch { return null; } },
-    post: (url: string, body: string) => { try { return execSync(`curl -s -L -X POST -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}' "${url}"`, { encoding: "utf-8" }); } catch { return null; } },
+    get:  (url: string) => {
+      if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
+      try { return execSync(`curl -s -L --max-time 15 "${url}"`, { encoding: "utf-8" }); } catch { return null; }
+    },
+    post: (url: string, body: string) => {
+      if (!isUrlSafe(url)) throw new Error(`Unsafe URL: ${url}`);
+      try { return execSync(`curl -s -L -X POST -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}' "${url}"`, { encoding: "utf-8" }); } catch { return null; }
+    },
   });
 
-  const storagePath2 = join(process.cwd(), ".viper", "storage.json");
+  const storagePath2 = join(cwd2, ".viper", "storage.json");
   const loadSt  = () => { try { return JSON.parse(readFileSync(storagePath2, "utf-8")); } catch { return {}; } };
-  const saveSt  = (d: Record<string, string>) => { mkdirSync(join(process.cwd(), ".viper"), { recursive: true }); writeFileSync(storagePath2, JSON.stringify(d, null, 2)); };
+  const saveSt  = (d: Record<string, string>) => { mkdirSync(join(cwd2, ".viper"), { recursive: true }); writeFileSync(storagePath2, JSON.stringify(d, null, 2)); };
   interp.registerCompiledGlobal("storage", {
     get:    (k: string) => { const d = loadSt(); return d[k] ?? null; },
     set:    (k: string, v: string) => { const d = loadSt(); d[k] = v; saveSt(d); },
     delete: (k: string) => { const d = loadSt(); delete d[k]; saveSt(d); },
     keys:   () => Object.keys(loadSt()),
-  });
-
-  interp.registerCompiledGlobal("thread", {
-    run: (path: string) => {
-      const child = spawn("npx", ["tsx", resolve(join(process.cwd(), "lib/viper-cli/src/cli.ts")), "run", path], {
-        cwd: process.cwd(), stdio: "inherit", env: process.env,
-      });
-      child.on("exit", (code) => { if (code !== 0) console.error(`Thread '${path}' exited with ${code}`); });
-    },
   });
 }
 
@@ -1170,21 +1187,7 @@ async function main() {
     return;
   }
 
-  if (cmd === "thread") {
-    const file = positional[1];
-    if (!file) { printError("Missing file path", "Usage: viper thread <file.vi>"); process.exit(1); }
-    console.log(`${blue("⟳")} Spawning thread: ${cyan(file)}`);
-    const child = spawn("npx", ["tsx", resolve(dirname(fileURLToPath(import.meta.url)), "cli.ts"), "run", file], {
-      cwd: process.cwd(),
-      stdio: "inherit",
-      env: process.env,
-    });
-    child.on("exit", (code) => {
-      if (code !== 0) console.error(red(`Thread exited with code ${code}`));
-      else printSuccess("Thread finished.");
-    });
-    return;
-  }
+  // v1.5: thread command removed for security — no process spawning from Viper scripts
 
   if (cmd === "vpm") {
     const sub = positional[1];

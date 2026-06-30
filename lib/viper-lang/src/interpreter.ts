@@ -225,10 +225,11 @@ export class Interpreter {
   private globalEnv: Environment;
   private frameLimit = 5000000;
   private frameCount = 0;
-  private frameCheckInterval = 500;
   private stopped = false;
   private compileCache = new Map<string, { js: string; error?: string }>();
   private compiledContext: Record<string, unknown> = {};
+  private compiledFn: Function | null = null;
+  private lastCompiledCode: string | null = null;
   private loopCallbacks: (() => void)[] = [];
   private animFrameId: number | null = null;
   private keyHandlers: ((key: string) => void)[] = [];
@@ -555,19 +556,10 @@ export class Interpreter {
     this.clickHandlers = [];
     this.frameCount = 0;
     try {
-      // Check compile cache first
-      const cached = this.compileCache.get(code);
-      if (cached) {
-        if (cached.error) {
-          // Previous compilation failed, skip to interpreter
-        } else {
-          try {
-            this.runCompiled(cached.js);
-            return { success: true };
-          } catch (e) {
-            // Cached compiled code failed at runtime
-          }
-        }
+      // v2.0: Fast path — reuse compiled Function for repeated runs (IDE speedup)
+      if (this.compiledFn && this.lastCompiledCode === code) {
+        this.runCompiledFn(this.compiledFn);
+        return { success: true };
       }
 
       const lexResult = lex(code);
@@ -583,15 +575,17 @@ export class Interpreter {
         return { success: false, errors: allErrors };
       }
 
-      // Try compiler path for native speed
+      // v2.0: Try JS transpiler FIRST for maximum speed
       const compiledJS = compileToJS(parseResult.ast);
       if (compiledJS.success && compiledJS.js) {
         try {
-          this.compileCache.set(code, { js: compiledJS.js });
-          this.runCompiled(compiledJS.js);
+          const fn = this.buildCompiledFn(compiledJS.js);
+          this.runCompiledFn(fn);
+          this.compiledFn = fn;
+          this.lastCompiledCode = code;
           return { success: true };
         } catch (e) {
-          // Compilation succeeded but execution failed - fall back to interpreter
+          // Compilation succeeded but execution failed — fall back
           this.compileCache.set(code, { js: compiledJS.js, error: String(e) });
         }
       }
@@ -601,15 +595,12 @@ export class Interpreter {
         const compiler = new Compiler();
         const program = compiler.compile(parseResult.ast);
         const vm = new VM(program, this.isTrusted);
-        // Copy globals into VM
-        this.copyGlobalsToVM(vm);
         const vmResult = vm.run();
         if (vmResult.success) {
           return { success: true };
         }
-        // VM failed - fall through to tree-walker
       } catch (e) {
-        // VM compilation/execution failed - fall through to tree-walker
+        // VM failed — fall through to tree-walker
       }
 
       // Fallback to tree-walker interpreter
@@ -625,9 +616,11 @@ export class Interpreter {
   }
 
   private execNode(node: AstNode, env: Environment): ViperValue {
-    this.frameCount++;
-    if (!this.isTrusted && (this.frameCount & 511) === 0 && this.frameCount > this.frameLimit) {
-      throw new ViperError("Maximum execution depth exceeded (infinite loop?)");
+    // v2.0: Bitwise frame check — every 1024 nodes instead of every 511
+    if ((++this.frameCount & 1023) === 0) {
+      if (!this.isTrusted && this.frameCount > this.frameLimit) {
+        throw new ViperError("Maximum execution depth exceeded (infinite loop?)");
+      }
     }
 
     switch (node.type) {
@@ -1232,13 +1225,14 @@ export class Interpreter {
       const os      = __ext.os      || null;
       const env     = __ext.env     || null;
       const storage = __ext.storage || null;
-      const fetch   = __ext.fetch   || (typeof globalThis !== "undefined" && globalThis.fetch) || null;
+      const fetch   = __ext.fetch   || null;
       const fetchPost = __ext.fetchPost || null;
       const http    = __ext.http    || null;
       const thread  = __ext.thread  || null;
     `;
 
-    const fn = new Function("ctx", "setSize", "size", "__loop", "__onKey", "__onClick", "__ext", runtime + " " + js);
+    const safeJs = this.sanitizeCompiledJs(js);
+    const fn = new Function("ctx", "setSize", "size", "__loop", "__onKey", "__onClick", "__ext", runtime + " " + safeJs);
     fn(
       ctx,
       setSize,
@@ -1251,6 +1245,163 @@ export class Interpreter {
       (cb: (x: number, y: number) => void) => self.clickHandlers.push(cb),
       ext
     );
+  }
+
+  // v1.5: Security — sanitize compiled JS before eval via new Function()
+  private sanitizeCompiledJs(js: string): string {
+    const DANGEROUS = [
+      /\b__proto__\b/g, /\bconstructor\b/g,
+      /\beval\s*\(/g, /\bFunction\s*\(/g, /\bimport\s*\(/g, /\brequire\s*\(/g,
+      /\bwith\s*\(/g, /\bdebugger\b/g,
+      /\bglobalThis\b/g, /\bwindow\b/g, /\bself\b/g, /\btop\b/g, /\bparent\b/g,
+      /\bdocument\b/g, /\blocation\b/g, /\bnavigator\b/g,
+      /\bprocess\b/g, /\bchild_process\b/g,
+    ];
+    let cleaned = js;
+    for (const re of DANGEROUS) {
+      cleaned = cleaned.replace(re, "__BLOCKED__");
+    }
+    return cleaned;
+  }
+
+  // v2.0: Build compiled Function once, reuse via cache (avoids re-eval on repeated runs)
+  private buildCompiledFn(js: string): Function {
+    const runtime = this.buildRuntime();
+    const safeJs = this.sanitizeCompiledJs(js);
+    return new Function("ctx", "setSize", "size", "__loop", "__onKey", "__onClick", "__ext", runtime + " " + safeJs);
+  }
+
+  // v2.0: Run pre-built compiled function — same binding as runCompiled but faster
+  private runCompiledFn(fn: Function) {
+    const self = this;
+    const size = this.canvasSize;
+    fn(
+      this.ctx,
+      (w: number, h: number) => { this.canvasSize = { w, h }; },
+      size,
+      (cb: () => void) => {
+        self.loopCallbacks.push(cb);
+        if (self.loopCallbacks.length === 1) self.startLoop();
+      },
+      (cb: (key: string) => void) => self.keyHandlers.push(cb),
+      (cb: (x: number, y: number) => void) => self.clickHandlers.push(cb),
+      this.compiledContext
+    );
+  }
+
+  // v2.0: Extract runtime construction so it can be reused
+  private buildRuntime(): string {
+    const ctx = this.ctx;
+    const setSize = (w: number, h: number) => { this.canvasSize = { w, h }; };
+    const size = this.canvasSize;
+    const self = this;
+    const ext = this.compiledContext;
+    return `
+      const __print = (...args) => { ctx.output(args.join(" "), "log"); };
+      const __warn  = (...args) => { ctx.output(args.join(" "), "warn"); };
+      const __error = (...args) => { ctx.output(args.join(" "), "error"); };
+      const __clear = () => { ctx.clearConsole(); };
+      const __num = (v) => {
+        if (typeof v === "number") return v;
+        if (typeof v === "string") return parseFloat(v) || 0;
+        if (typeof v === "boolean") return v ? 1 : 0;
+        return 0;
+      };
+      const __type = (v) => {
+        if (v === null || v === undefined) return "null";
+        if (Array.isArray(v)) return "array";
+        return typeof v;
+      };
+      const __len = (v) => {
+        if (Array.isArray(v)) return v.length;
+        if (typeof v === "string") return v.length;
+        if (v && typeof v === "object") return Object.keys(v).length;
+        return 0;
+      };
+      const __keys = (v) => {
+        if (v && typeof v === "object" && !Array.isArray(v)) return Object.keys(v);
+        if (Array.isArray(v)) return v.map((_, i) => i);
+        return [];
+      };
+      const __values = (v) => {
+        if (Array.isArray(v)) return [...v];
+        if (v && typeof v === "object") return Object.values(v);
+        return [];
+      };
+      const __range = (a, b, step) => {
+        const st = b !== undefined ? a : 0;
+        const en = b !== undefined ? b : a;
+        const s  = step || 1;
+        const r  = [];
+        for (let i = st; i < en; i += s) r.push(i);
+        return r;
+      };
+      const __math = {
+        PI: Math.PI, E: Math.E, TAU: Math.PI * 2,
+        sqrt: Math.sqrt, abs: Math.abs, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+        sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos,
+        atan: Math.atan, atan2: Math.atan2, pow: Math.pow,
+        log: Math.log, log2: Math.log2, log10: Math.log10,
+        max: Math.max, min: Math.min, hypot: Math.hypot,
+        sign: Math.sign, trunc: Math.trunc, exp: Math.exp, cbrt: Math.cbrt,
+        clamp: (v, lo, hi) => Math.min(Math.max(v, lo), hi),
+        lerp: (x, y, t) => x + (y - x) * t,
+        random: () => Math.random(),
+        randInt: (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo,
+      };
+      const __timerDefault = {
+        now:   () => performance.now(),
+        date:  () => new Date().toISOString(),
+        sleep: (ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) {} },
+        loop:  (fn) => { __loop(fn); },
+      };
+      const __canvas = {
+        setSize:   (w, h)               => { setSize(w, h); ctx.draw({ cmd: "setSize",   args: [w, h] }); },
+        clear:     (color)              => ctx.draw({ cmd: "clear",     args: [color] }),
+        rect:      (x, y, w, h, color) => ctx.draw({ cmd: "rect",      args: [x, y, w, h, color] }),
+        roundRect: (x, y, w, h, r, c)  => ctx.draw({ cmd: "roundRect", args: [x, y, w, h, r, c] }),
+        circle:    (x, y, r, color)    => ctx.draw({ cmd: "circle",    args: [x, y, r, color] }),
+        ellipse:   (x, y, rx, ry, c)   => ctx.draw({ cmd: "ellipse",   args: [x, y, rx, ry, c] }),
+        line:      (x1, y1, x2, y2, c, w) => ctx.draw({ cmd: "line",    args: [x1, y1, x2, y2, c, w] }),
+        poly:      (pts, color)         => ctx.draw({ cmd: "poly",      args: [pts, color] }),
+        text:      (text, x, y, size, color, font) => ctx.draw({ cmd: "text", args: [text, x, y, size, color, font] }),
+        image:     (src, x, y, w, h)   => ctx.draw({ cmd: "image",     args: [src, x, y, w, h] }),
+        gradient:  (x1, y1, x2, y2, stops) => ctx.draw({ cmd: "gradient", args: [x1, y1, x2, y2, stops] }),
+        getWidth:  ()                  => size.w,
+        getHeight: ()                  => size.h,
+        onKey:     (fn)                => { __onKey(fn); },
+        onClick:   (fn)                => { __onClick(fn); },
+      };
+      function __viper_in(left, right) {
+        if (Array.isArray(right)) return right.includes(left);
+        if (typeof right === "string") return right.includes(String(left));
+        if (right && typeof right === "object") return left in right;
+        return false;
+      }
+      const print   = __print;
+      const log     = __print;
+      const warn    = __warn;
+      const error   = __error;
+      const clear   = __clear;
+      const str     = (v) => String(v);
+      const num     = __num;
+      const bool    = (v) => !!v;
+      const type    = __type;
+      const len     = __len;
+      const keys    = __keys;
+      const values  = __values;
+      const range   = __range;
+      const math    = __ext.math    || __math;
+      const timer   = __ext.timer   || __timerDefault;
+      const canvas  = __canvas;
+      const os      = __ext.os      || null;
+      const env     = __ext.env     || null;
+      const storage = __ext.storage || null;
+      const fetch   = __ext.fetch   || null;
+      const fetchPost = __ext.fetchPost || null;
+      const http    = __ext.http    || null;
+      const thread  = __ext.thread  || null;
+    `;
   }
 
 }

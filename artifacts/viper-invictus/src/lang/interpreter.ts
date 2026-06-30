@@ -703,9 +703,27 @@ export class Interpreter {
     }
   }
 
+  // v1.5: Security — sanitize compiled JS before eval via new Function()
+  private sanitizeCompiledJs(js: string): string {
+    const DANGEROUS = [
+      /\b__proto__\b/g, /\bconstructor\b/g,
+      /\beval\s*\(/g, /\bFunction\s*\(/g, /\bimport\s*\(/g, /\brequire\s*\(/g,
+      /\bwith\s*\(/g, /\bdebugger\b/g,
+      /\bglobalThis\b/g, /\bwindow\b/g, /\bself\b/g, /\btop\b/g, /\bparent\b/g,
+      /\bdocument\b/g, /\blocation\b/g, /\bnavigator\b/g,
+      /\bprocess\b/g, /\bchild_process\b/g,
+    ];
+    let cleaned = js;
+    for (const re of DANGEROUS) {
+      cleaned = cleaned.replace(re, "__BLOCKED__");
+    }
+    return cleaned;
+  }
+
   // v1.3: Build compiled Function once, reuse via cache
   private buildCompiledFn(js: string): Function {
-    return new Function("ctx", "setSize", "size", "__loop", "__onKey", "__onClick", RUNTIME + " " + js);
+    const safeJs = this.sanitizeCompiledJs(js);
+    return new Function("ctx", "setSize", "size", "__loop", "__onKey", "__onClick", RUNTIME + " " + safeJs);
   }
 
   // v1.3: Run pre-built compiled function
