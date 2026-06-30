@@ -20,7 +20,7 @@ export function compileToJS(ast: AstNode): CompilerResult {
   resetTmp();
   try {
     const body = compileNode(ast);
-    const js = `${body}`;
+    const js = `"use strict"; ${body}`;
     return { success: true, js };
   } catch (e) {
     return { success: false, error: String(e) };
@@ -89,9 +89,9 @@ function compileNode(node: AstNode | null | undefined): string {
 
 function compileBlock(stmts: AstNode[], isProgram = false): string {
   if (!stmts || stmts.length === 0) return isProgram ? "" : "{}";
-  const parts = stmts.map(s => compileNode(s)).filter(p => p !== ";" && p !== "");
-  if (isProgram) return parts.join(" ");
-  return "{ " + parts.join(" ") + " }";
+  const parts = stmts.map(s => compileNode(s)).filter(p => p !== ";" && p !== "").map(p => p.replace(/;+$/, ""));
+  if (isProgram) return parts.join("; ");
+  return "{ " + parts.join("; ") + " }";
 }
 
 function compileVarDecl(node: AstNode, kind: string): string {
@@ -180,9 +180,9 @@ function compileFor(node: AstNode): string {
   const condNode = node.cond as AstNode;
   const updateNode = node.update as AstNode;
   const body = compileNode(node.body as AstNode);
-  const init = initNode ? compileNode(initNode).replace(/;$/, "") : "";
+  const init = initNode ? compileNode(initNode).replace(/;+$/, "") : "";
   const cond = condNode ? compileNode(condNode) : "true";
-  const update = updateNode ? compileNode(updateNode).replace(/;$/, "") : "";
+  const update = updateNode ? compileNode(updateNode).replace(/;+$/, "") : "";
   return `for (${init}; ${cond}; ${update}) ${body}`;
 }
 
@@ -351,8 +351,8 @@ function compileNew(node: AstNode): string {
 }
 
 function compileArray(node: AstNode): string {
-  // AST uses "elements" for array items
-  const items = (node.elements as AstNode[] || []).map(compileNode).join(", ");
+  // AST uses "items" for array items (parser produces node.items)
+  const items = (node.items as AstNode[] || []).map(compileNode).join(", ");
   return `[${items}]`;
 }
 
@@ -378,17 +378,18 @@ function compileTernary(node: AstNode): string {
 
 function compileTemplate(node: AstNode): string {
   const parts = (node.parts as AstNode[] || []);
-  let first = true;
-  let result = "";
+  const pieces: string[] = [];
   for (const part of parts) {
-    const piece = part.type === "Str"
-      ? JSON.stringify(part.value as string)
-      : `String(${compileNode(part)})`;
-    if (first) result = piece;
-    else result = `(${result} + ${piece})`;
-    first = false;
+    if (part.type === "Str") {
+      const s = part.value as string;
+      if (s) pieces.push(JSON.stringify(s));
+    } else {
+      pieces.push(`String(${compileNode(part)})`);
+    }
   }
-  return first ? '""' : result;
+  if (pieces.length === 0) return '""';
+  if (pieces.length === 1) return pieces[0];
+  return pieces.join(" + ");
 }
 
 const viperBuiltins = new Map<string, string>([
