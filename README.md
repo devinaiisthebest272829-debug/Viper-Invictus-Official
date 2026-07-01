@@ -135,18 +135,14 @@ viper info
 
 ## Performance
 
-Viper compiles to native JS and executes via V8. The compiler is a straightforward lexer, parser, JS emitter: no intermediate bytecode, no JIT, just clean JavaScript that V8 optimizes naturally.
+Viper compiles to JavaScript, so performance is essentially Node.js/V8 performance. Loops compile to native `for`, math calls compile to `Math.*`, arrays compile to native JS arrays. There is no interpreter overhead, no bytecode VM, no custom JIT, just direct JS emission.
 
-| Benchmark | Viper | Python | C++ naive |
-|---|---|---|---|
-| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op | ~0.3 ns/op |
-| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op | ~4 ns/op |
-| Ray-sphere (1M rays) | **1.06 ns/ray** | ~120 ns/ray | ~4.5 ns/ray |
-| Function calls (500K) | **16.7 ns/op** | ~200 ns/op | ~1 ns/op |
+| Benchmark | Viper | Python 3 |
+|---|---|---|
+| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op |
+| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op |
 
-Ray-sphere intersection benchmark: **941 Mrays/s**, 112x faster than Python, 4x faster than naive C++.
-
-Why it is fast: Viper emits plain JavaScript. Loops become `for`, math becomes `Math.*`, arrays become native JS arrays. V8 handles the rest. No custom JIT, no bytecode VM, just direct compilation to the platform's native runtime.
+The numbers above are from running the benchmark script in this repo. Viper is fast because it does not do anything extra, it compiles straight to JS that V8 already knows how to run well.
 
 ---
 
@@ -214,7 +210,7 @@ Run the benchmark suite:
 viper run benchmark.vi --trusted
 ```
 
-Run the ray-sphere intersection benchmark (1M rays, under 2 ns/ray):
+Run the ray-sphere intersection demo:
 ```bash
 viper run ray_sphere_fast.vi --trusted
 ```
