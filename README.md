@@ -135,14 +135,34 @@ viper info
 
 ## Performance
 
-Viper compiles to JavaScript, so performance is essentially Node.js/V8 performance. Loops compile to native `for`, math calls compile to `Math.*`, arrays compile to native JS arrays. There is no interpreter overhead, no bytecode VM, no custom JIT, just direct JS emission.
+Viper compiles to plain JavaScript. Loops become `for`, math becomes `Math.*`, arrays become native JS arrays. The JS that Viper emits runs at V8 speed, there is no interpreter or bytecode VM in between.
 
-| Benchmark | Viper | Python 3 | C++ (naive) |
+Here are real numbers from running the same code on the same machine. Viper was compiled to JS first, then run with Node.js. Python ran natively. C++ was compiled with no optimization (`-O0`) to match naive handwritten code.
+
+| Benchmark | Viper (compiled JS) | Python 3 | C++ (-O0) |
 |---|---|---|---|
-| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op | ~0.3 ns/op |
-| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op | ~4 ns/op |
+| Integer loop (10M) | **1.7 ns/op** | 21.4 ns/op | 1.8 ns/op |
+| Float mul/add (5M) | **4.7 ns/op** | 19.6 ns/op | 2.8 ns/op |
+| math.sqrt (2M) | **6.4 ns/op** | 32.5 ns/op | 2.0 ns/op |
+| sin + cos (1M) | **20.6 ns/op** | 79.3 ns/op | 16.8 ns/op |
+| Nested loops (1M) | **5.1 ns/op** | 28.8 ns/op | 1.8 ns/op |
+| Function calls (500K) | **24.2 ns/op** | 37.8 ns/op | 1.1 ns/op |
+| Array push+sum (100K) | **118 ns/op** | 56.5 ns/op | 22.0 ns/op |
 
-The numbers above are from running the benchmark script in this repo. Viper compiles to JavaScript that V8 optimizes, so it is close to JS speed. C++ with -O3 is still faster, and Python is slower due to interpreter overhead.
+Run the benchmarks yourself:
+
+```bash
+# Viper
+viper run benchmark.vi --trusted
+
+# Python
+python3 benchmark.py
+
+# C++
+g++ -O0 benchmark.cpp && ./a.out
+```
+
+Viper beats Python on integer loops and function calls because V8 JIT compiles hot loops to machine code. Python stays in the interpreter. C++ with `-O0` is close on simple loops but still ahead on math because it calls libc `sqrt`/`sin` directly. With `-O3`, C++ optimizes away dead loops entirely so the comparison is not meaningful.
 
 ---
 
