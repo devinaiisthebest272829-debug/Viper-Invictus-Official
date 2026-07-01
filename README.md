@@ -137,12 +137,12 @@ viper info
 
 Viper compiles to JavaScript, so performance is essentially Node.js/V8 performance. Loops compile to native `for`, math calls compile to `Math.*`, arrays compile to native JS arrays. There is no interpreter overhead, no bytecode VM, no custom JIT, just direct JS emission.
 
-| Benchmark | Viper | Python 3 |
-|---|---|---|
-| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op |
-| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op |
+| Benchmark | Viper | Python 3 | C++ (naive) |
+|---|---|---|---|
+| Integer loop (10M) | **1.2 ns/op** | ~150 ns/op | ~0.3 ns/op |
+| math.sqrt (2M) | **6.2 ns/op** | ~400 ns/op | ~4 ns/op |
 
-The numbers above are from running the benchmark script in this repo. Viper is fast because it does not do anything extra, it compiles straight to JS that V8 already knows how to run well.
+The numbers above are from running the benchmark script in this repo. Viper compiles to JavaScript that V8 optimizes, so it is close to JS speed. C++ with -O3 is still faster, and Python is slower due to interpreter overhead.
 
 ---
 
