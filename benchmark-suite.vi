@@ -1,0 +1,157 @@
+// Copyright 2026 Viper Team
+// Licensed under the Apache License, Version 2.0
+// Viper Invictus benchmark suite, run with: viper run benchmark-suite.vi --trusted
+
+fn row(name, iters, ms, result) {
+  let ns = ms * 1000000.0 / iters
+  let mops = (iters / (ms / 1000.0)) / 1000000.0
+  print(name + "," + str(ns) + "," + str(mops) + "," + str(ms) + "," + str(result))
+}
+
+print("benchmark,ns_per_op,mops,ms,result")
+
+// Warmup then measure each benchmark manually
+
+// 1. Integer loop 10M
+let s1 = 0
+for (let w = 0; w < 3; w++) {
+  s1 = 0
+  for (let i = 0; i < 10000000; i++) { s1 += i }
+}
+let t1 = timer.now()
+s1 = 0
+for (let i = 0; i < 10000000; i++) { s1 += i }
+let e1 = timer.now() - t1
+row("int_loop_10m", 10000000, e1, s1)
+
+// 2. Float mul/add 5M
+let s2 = 1.0
+for (let w = 0; w < 3; w++) {
+  s2 = 1.0
+  for (let i = 1; i < 5000000; i++) { s2 = s2 * 1.0000001 + 0.0000001 }
+}
+let t2 = timer.now()
+s2 = 1.0
+for (let i = 1; i < 5000000; i++) { s2 = s2 * 1.0000001 + 0.0000001 }
+let e2 = timer.now() - t2
+row("float_muladd_5m", 5000000, e2, s2)
+
+// 3. sqrt 2M
+let s3 = 0.0
+for (let w = 0; w < 3; w++) {
+  s3 = 0.0
+  for (let i = 1; i < 2000000; i++) { s3 += math.sqrt(i) }
+}
+let t3 = timer.now()
+s3 = 0.0
+for (let i = 1; i < 2000000; i++) { s3 += math.sqrt(i) }
+let e3 = timer.now() - t3
+row("sqrt_2m", 2000000, e3, s3)
+
+// 4. sin + cos 1M
+let s4 = 0.0
+for (let w = 0; w < 3; w++) {
+  s4 = 0.0
+  for (let i = 0; i < 1000000; i++) { s4 += math.sin(i) + math.cos(i) }
+}
+let t4 = timer.now()
+s4 = 0.0
+for (let i = 0; i < 1000000; i++) { s4 += math.sin(i) + math.cos(i) }
+let e4 = timer.now() - t4
+row("sincos_1m", 1000000, e4, s4)
+
+// 5. Function call 500K
+fn add2(a, b) { return a + b }
+let s5 = 0
+for (let w = 0; w < 3; w++) {
+  s5 = 0
+  for (let i = 0; i < 500000; i++) { s5 = add2(s5, i) }
+}
+let t5 = timer.now()
+s5 = 0
+for (let i = 0; i < 500000; i++) { s5 = add2(s5, i) }
+let e5 = timer.now() - t5
+row("fn_call_500k", 500000, e5, s5)
+
+// 6. Nested loops 1M
+let s6 = 0
+let n6 = 1000
+for (let w = 0; w < 3; w++) {
+  s6 = 0
+  for (let i = 0; i < n6; i++) {
+    for (let j = 0; j < n6; j++) { s6 += i * j }
+  }
+}
+let t6 = timer.now()
+s6 = 0
+for (let i = 0; i < n6; i++) {
+  for (let j = 0; j < n6; j++) { s6 += i * j }
+}
+let e6 = timer.now() - t6
+row("nested_loops_1m", n6 * n6, e6, s6)
+
+// 7. Array 100K
+let s7 = 0
+for (let w = 0; w < 3; w++) {
+  let arr = []
+  for (let i = 0; i < 100000; i++) { arr.push(i * i) }
+  s7 = 0
+  for (let j = 0; j < 100000; j++) { s7 += arr[j] }
+}
+let t7 = timer.now()
+let arr7 = []
+for (let i = 0; i < 100000; i++) { arr7.push(i * i) }
+s7 = 0
+for (let j = 0; j < 100000; j++) { s7 += arr7[j] }
+let e7 = timer.now() - t7
+row("array_100k", 100000, e7, s7)
+
+// 8. Prime sieve 100K
+let s8 = 0
+for (let w = 0; w < 3; w++) {
+  let n = 100000
+  let arr = []
+  for (let i = 0; i <= n; i++) { arr.push(true) }
+  arr[0] = false
+  arr[1] = false
+  let i = 2
+  while (i * i <= n) {
+    if (arr[i] == true) {
+      let j = i * i
+      while (j <= n) { arr[j] = false; j += i }
+    }
+    i++
+  }
+  s8 = 0
+  for (let k = 0; k < n; k++) { if (arr[k] == true) { s8++ } }
+}
+let t8 = timer.now()
+let n8 = 100000
+let arr8 = []
+for (let i = 0; i <= n8; i++) { arr8.push(true) }
+arr8[0] = false
+arr8[1] = false
+let i8 = 2
+while (i8 * i8 <= n8) {
+  if (arr8[i8] == true) {
+    let j8 = i8 * i8
+    while (j8 <= n8) { arr8[j8] = false; j8 += i8 }
+  }
+  i8++
+}
+s8 = 0
+for (let k8 = 0; k8 < n8; k8++) { if (arr8[k8] == true) { s8++ } }
+let e8 = timer.now() - t8
+row("sieve_100k", 100000, e8, s8)
+
+// 9. Branch ternary 5M
+let s9 = 0
+for (let w = 0; w < 3; w++) {
+  s9 = 0
+  for (let i = 0; i < 5000000; i++) { s9 += (i % 2 == 0) ? i : -i }
+}
+let t9 = timer.now()
+s9 = 0
+for (let i = 0; i < 5000000; i++) { s9 += (i % 2 == 0) ? i : -i }
+let e9 = timer.now() - t9
+row("branch_5m", 5000000, e9, s9)

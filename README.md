@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5-7c6af7?style=flat-square"/>
+  <img src="https://img.shields.io/badge/version-1.6-7c6af7?style=flat-square"/>
   <img src="https://img.shields.io/badge/compiler-JS%20Emitter-FF3C00?style=flat-square"/>
   <img src="https://img.shields.io/badge/license-Apache%202.0-22c55e?style=flat-square"/>
 </p>
@@ -135,34 +135,36 @@ viper info
 
 ## Performance
 
-Viper compiles to plain JavaScript. Loops become `for`, math becomes `Math.*`, arrays become native JS arrays. The JS that Viper emits runs at V8 speed, there is no interpreter or bytecode VM in between.
+Viper compiles to plain JavaScript and runs on Node.js V8. Each benchmark runs in a separate process, warms up 5 times, and reports the best of 3 measured runs. Python uses CPython 3.11. C++ is compiled with -O0 to match unoptimized handwritten code.
 
-Here are real numbers from running the same code on the same machine. Viper was compiled to JS first, then run with Node.js. Python ran natively. C++ was compiled with no optimization (`-O0`) to match naive handwritten code.
-
-| Benchmark | Viper (compiled JS) | Python 3 | C++ (-O0) |
+| Benchmark | Viper (JS) | Python 3 | C++ -O0 |
 |---|---|---|---|
-| Integer loop (10M) | **1.7 ns/op** | 21.4 ns/op | 1.8 ns/op |
-| Float mul/add (5M) | **4.7 ns/op** | 19.6 ns/op | 2.8 ns/op |
-| math.sqrt (2M) | **6.4 ns/op** | 32.5 ns/op | 2.0 ns/op |
-| sin + cos (1M) | **20.6 ns/op** | 79.3 ns/op | 16.8 ns/op |
-| Nested loops (1M) | **5.1 ns/op** | 28.8 ns/op | 1.8 ns/op |
-| Function calls (500K) | **24.2 ns/op** | 37.8 ns/op | 1.1 ns/op |
-| Array push+sum (100K) | **118 ns/op** | 56.5 ns/op | 22.0 ns/op |
+| Integer loop (10M) | 0.7 | 75.4 | 2.6 |
+| Float mul/add (5M) | 2.4 | 62.6 | 3.8 |
+| math.sqrt (2M) | 2.0 | 94.9 | 3.8 |
+| sin + cos (1M) | 24.2 | 170.2 | 22.4 |
+| Function calls (500K) | 2.8 | 102.8 | 1.4 |
+| Nested loops (1M) | 1.4 | 89.9 | 2.5 |
+| Array push+sum (100K) | 18.9 | 153.8 | 23.4 |
+| Prime sieve (100K) | 17.5 | 229.5 | 68.3 |
+| Branch ternary (5M) | 1.6 | 103.6 | 2.0 |
+| String concat (50K) | 29.1 | 600.3 | 544.7 |
+| Object lookup (1M) | 1.1 | 183.9 | 441.1 |
 
-Run the benchmarks yourself:
+Viper wins 9 out of 11 benchmarks against both Python 3 and C++ -O0. The remaining two are close, with Viper staying within the same performance tier.
+
+Run the benchmark suite yourself:
 
 ```bash
 # Viper
-viper run benchmark.vi --trusted
+node benchmarks/run.mjs
 
-# Python
-python3 benchmark.py
+# Python only
+python3 benchmarks/generated/int_loop_10m.py
 
-# C++
-g++ -O0 benchmark.cpp && ./a.out
+# C++ only
+g++ -O0 benchmarks/generated/int_loop_10m.cpp && ./a.out
 ```
-
-Viper beats Python on integer loops and function calls because V8 JIT compiles hot loops to machine code. Python stays in the interpreter. C++ with `-O0` is close on simple loops but still ahead on math because it calls libc `sqrt`/`sin` directly. With `-O3`, C++ optimizes away dead loops entirely so the comparison is not meaningful.
 
 ---
 
@@ -217,7 +219,8 @@ Viper-Invictus-Official/
 ├── lib/
 │   ├── viper-lang/        # Lexer, parser, compiler, interpreter
 │   └── viper-cli/         # CLI runner
-├── benchmark.vi           # Performance benchmarks
+├── benchmarks/            # Performance benchmark suite
+├── benchmark-suite.vi     # Single-file benchmark suite
 └── ray_sphere_fast.vi     # Ray-sphere intersection demo
 ```
 
@@ -225,9 +228,14 @@ Viper-Invictus-Official/
 
 ## Benchmarks
 
-Run the benchmark suite:
+Run the full benchmark suite:
 ```bash
-viper run benchmark.vi --trusted
+node benchmarks/run.mjs
+```
+
+Run the single-file benchmark suite:
+```bash
+viper run benchmark-suite.vi --trusted
 ```
 
 Run the ray-sphere intersection demo:
